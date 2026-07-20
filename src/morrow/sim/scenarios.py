@@ -44,12 +44,13 @@ def forced_failure_world(kind: str = "box") -> World:
 
 def randomize(kind: str, rng: np.random.RandomState, jitter_carton: bool = True,
               slip_prob: float = 0.12, carton_yaw: bool = False,
-              perception_dropout: float = 0.0) -> World:
+              perception_dropout: float = 0.0, occlusion: float = 0.0) -> World:
     cx = rng.uniform(-0.25, -0.05)
     cy = rng.uniform(-0.15, 0.15)
     yaw = rng.uniform(-np.pi, np.pi)
     world = make_world(kind, cx, cy, yaw, slip_prob=slip_prob, rng=rng)
     world.perception_dropout_prob = perception_dropout
+    world.occlusion_prob = occlusion
     if jitter_carton:
         world.carton.cx = 0.20 + rng.uniform(-0.04, 0.04)
         world.carton.cy = 0.0 + rng.uniform(-0.04, 0.04)
@@ -58,9 +59,20 @@ def randomize(kind: str, rng: np.random.RandomState, jitter_carton: bool = True,
     return world
 
 
+def staged(kind: str, rng: np.random.RandomState, distractor_kinds=None) -> World:
+    """The target SKU plus distractor products staged elsewhere on the table.
+    The perceiver must select the target by descriptor and ignore the rest."""
+    world = randomize(kind, rng)
+    others = distractor_kinds or [k for k in ("box", "cylinder", "pouch") if k != kind]
+    spots = [(0.0, -0.28), (0.05, 0.28), (-0.05, -0.32)]
+    for k, (dx, dy) in zip(others, spots):
+        world.distractors.append(make_product(k, dx, dy, rng.uniform(-np.pi, np.pi)))
+    return world
+
+
 def stress(kind: str, rng: np.random.RandomState) -> World:
-    """A harder world: rotated carton + intermittent low-confidence perception."""
-    return randomize(kind, rng, carton_yaw=True, perception_dropout=0.2)
+    """A harder world: rotated carton, low-confidence frames, and occlusion noise."""
+    return randomize(kind, rng, carton_yaw=True, perception_dropout=0.2, occlusion=0.15)
 
 
 def onboard(kind: str, sku_id: str, n_demos: int = 2):

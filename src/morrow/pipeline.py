@@ -63,4 +63,5 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
         "second_graph": skill_graph(skill2),
         "second_run": second_run,
         "benchmark": run_benchmark(n=benchmark_n),
+        "benchmark_stress": run_benchmark(n=benchmark_n, stress_mode=True),
     }

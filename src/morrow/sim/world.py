@@ -65,7 +65,8 @@ class World:
 
     def __init__(self, product: Product, carton: Carton, table_height: float = 0.0,
                  workspace=(-0.4, 0.4, -0.4, 0.4), force_fail_seals: int = 0,
-                 slip_prob: float = 0.0, perception_dropout_prob: float = 0.0, rng=None):
+                 slip_prob: float = 0.0, perception_dropout_prob: float = 0.0,
+                 occlusion_prob: float = 0.0, distractors=None, rng=None):
         self.product = product
         self.carton = carton
         self.table_height = table_height
@@ -73,7 +74,9 @@ class World:
         self.force_fail_seals = force_fail_seals  # scripted misses (bench demo)
         self.slip_prob = slip_prob  # random suction miss on an otherwise-good seal
         self.perception_dropout_prob = perception_dropout_prob  # low-confidence frames
-        self.rng = rng  # seeded RandomState for reproducible slips/dropouts
+        self.occlusion_prob = occlusion_prob  # partial mask -> jittered centroid/footprint
+        self.distractors = list(distractors) if distractors else []  # non-target clutter
+        self.rng = rng  # seeded RandomState for reproducible slips/dropouts/occlusion
         self.ee_pose: Transform = frame((0.0, 0.0, self.SAFE_Z), 0.0)
         self.vacuum_on = False
         self.attached = False

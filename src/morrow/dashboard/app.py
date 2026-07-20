@@ -167,22 +167,29 @@ function render(){
   s=el('section');
   s.appendChild(el('div','eyebrow','5 \\u00b7 Evaluation'));
   s.appendChild(el('h2','Frozen benchmark \\u00b7 n='+D.benchmark.n+' randomized trials each'));
-  const t=el('table');
-  t.innerHTML='<thead><tr><th>SKU class</th><th>onboarding</th><th>morrow final</th><th>first-attempt</th><th>human</th><th>open-loop replay</th></tr></thead>';
-  const tb=el('tbody');
-  Object.entries(D.benchmark.kinds).forEach(([k,r])=>{
-    const m=r.morrow;
-    const tr=el('tr');
-    tr.innerHTML =
-      '<td><b>'+k+'</b></td>'+
-      '<td class="mono">'+r.onboarding.n_demos+' demos \\u00b7 '+r.onboarding.code_changes+' code</td>'+
-      '<td class="mono">'+pct(m.final_success_rate)+'<div class="bar"><span style="width:'+(m.final_success_rate*100)+'%"></span></div></td>'+
-      '<td class="mono">'+pct(m.first_attempt_rate)+'<div class="bar"><span style="width:'+(m.first_attempt_rate*100)+'%"></span></div></td>'+
-      '<td class="mono">'+pct(m.human_intervention_rate)+'</td>'+
-      '<td class="mono">'+pct(r.baseline_open_loop_success_rate)+'<div class="bar replay"><span style="width:'+(r.baseline_open_loop_success_rate*100)+'%"></span></div></td>';
-    tb.appendChild(tr);
-  });
-  t.appendChild(tb); const c=el('div','card'); c.appendChild(t); s.appendChild(c);
+  const bench=(data)=>{
+    const t=el('table');
+    t.innerHTML='<thead><tr><th>SKU class</th><th>onboarding</th><th>morrow final</th><th>first-attempt</th><th>human</th><th>open-loop replay</th></tr></thead>';
+    const tb=el('tbody');
+    Object.entries(data.kinds).forEach(([k,r])=>{
+      const m=r.morrow;
+      const tr=el('tr');
+      tr.innerHTML =
+        '<td><b>'+k+'</b></td>'+
+        '<td class="mono">'+r.onboarding.n_demos+' demos \\u00b7 '+r.onboarding.code_changes+' code</td>'+
+        '<td class="mono">'+pct(m.final_success_rate)+'<div class="bar"><span style="width:'+(m.final_success_rate*100)+'%"></span></div></td>'+
+        '<td class="mono">'+pct(m.first_attempt_rate)+'<div class="bar"><span style="width:'+(m.first_attempt_rate*100)+'%"></span></div></td>'+
+        '<td class="mono">'+pct(m.human_intervention_rate)+'</td>'+
+        '<td class="mono">'+pct(r.baseline_open_loop_success_rate)+'<div class="bar replay"><span style="width:'+(r.baseline_open_loop_success_rate*100)+'%"></span></div></td>';
+      tb.appendChild(tr);
+    });
+    t.appendChild(tb); const c=el('div','card'); c.appendChild(t); return c;
+  };
+  s.appendChild(bench(D.benchmark));
+  if(D.benchmark_stress){
+    s.appendChild(el('p','lead','Under stress \\u2014 rotated carton, intermittent low-confidence frames, and occlusion noise. Final success holds; more of the work is autonomous recovery.'));
+    s.appendChild(bench(D.benchmark_stress));
+  }
   root.appendChild(s);
 }
 render();
