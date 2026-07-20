@@ -31,6 +31,7 @@ class SceneState:
     perception_confidence: float  # 0..1
     timestamp: float
     uncertainty: dict = field(default_factory=dict)
+    occupied_regions: list = field(default_factory=list)  # placed-item footprints in the carton
 
     @property
     def product_top_z(self) -> float:

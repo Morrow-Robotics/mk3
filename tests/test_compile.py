@@ -44,3 +44,13 @@ def test_grasp_offset_is_small_for_centered_demo():
     skill = compile_skill([_demo()], "box")
     off = skill.transition(SkillState.APPROACHED, SkillState.GRASPED).rel["grasp_offset"]
     assert np.linalg.norm(off) < 0.01
+
+
+def test_onboard_timed_records_time_without_touching_the_hash():
+    from morrow.serialize import recompute_hash
+    from morrow.sim import onboard, onboard_timed
+    timed = onboard_timed("box", "box")
+    assert "onboarding_seconds" in timed.metadata
+    assert timed.metadata["onboarding_seconds"] >= 0.0
+    # timing lives in metadata only -> content hash is identical to the plain onboard
+    assert timed.version_hash == onboard("box", "box").version_hash == recompute_hash(timed)

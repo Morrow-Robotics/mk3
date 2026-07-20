@@ -7,14 +7,16 @@ the ordinary single-product `run_skill`; the only new pieces are:
 - **descriptor selection** — the target is chosen among the still-staged
   products by the skill's descriptor (the ambiguity gate still applies, so two
   identical SKUs correctly refuse to guess);
-- **place slots** — the item's skill is cloned with its carton-frame place
-  offset shifted to a distinct slot, so items don't land on each other.
+- **place slots** — the item's skill is cloned (`with_place_slot`) with its
+  carton-frame place offset shifted to a free slot; already-placed items are
+  passed into the world as `occupied`, and the place feasibility gate rejects
+  any candidate whose footprint would land on them. Slots are auto-assigned
+  (first-fit with clearance) or given per item.
 
-The single-product path is untouched: `with_place_slot` returns a new skill and
-the executor never learns about sequences.
-
-Note: the analytic sim does not model item-on-item collision — slots are chosen
-to be disjoint; a real cell would verify clearance. That honesty is the point.
+The single-product path is untouched: `with_place_slot` returns a new skill, the
+world's `occupied` list is empty by default, and the executor never learns about
+sequences. Clearance is checked from footprint AABBs — a 2.5D approximation an
+honest bench would refine with real geometry.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ import numpy as np
 
 from .execute import run_skill
 from .skill import SkillProgram, SkillState, hash_skill
-from .sim.scenarios import default_carton, make_product
+from .sim.scenarios import make_product, pack_carton
 from .sim.sim_perceive import SimPerceiver
 from .sim.sim_robot import SimRobot
 from .sim.world import World
@@ -51,7 +53,48 @@ def with_place_slot(skill: SkillProgram, slot_xy) -> SkillProgram:
 class PackItem:
     sku: str
     kind: str
-    slot: tuple  # carton-frame xy
+    slot: tuple | None = None  # carton-frame xy; None => auto-assign a free slot
+
+
+# Candidate slots (carton frame), tried in order — corners first so several
+# items with rotated footprints fit inside one opening without overlapping.
+SLOT_GRID = [(-0.07, -0.07), (0.07, -0.07), (0.0, 0.07),
+             (-0.07, 0.07), (0.07, 0.07), (0.0, -0.07), (0.0, 0.0)]
+
+
+def _aabb_half(product) -> tuple[float, float]:
+    fp = product.footprint()
+    return (fp[2] - fp[0]) / 2, (fp[3] - fp[1]) / 2
+
+
+def _slot_footprint(product, carton, slot) -> np.ndarray:
+    hx, hy = _aabb_half(product)
+    bx, by = carton.cx + slot[0], carton.cy + slot[1]
+    return np.array([bx - hx, by - hy, bx + hx, by + hy])
+
+
+def _within(inner, outer) -> bool:
+    return bool(inner[0] >= outer[0] and inner[1] >= outer[1]
+                and inner[2] <= outer[2] and inner[3] <= outer[3])
+
+
+def _overlaps(a, b, clearance: float = 0.005) -> bool:
+    w = min(a[2] + clearance, b[2]) - max(a[0] - clearance, b[0])
+    h = min(a[3] + clearance, b[3]) - max(a[1] - clearance, b[1])
+    return w > 0 and h > 0
+
+
+def _assign_slot(product, carton, placed):
+    """First free slot whose footprint fits the opening and clears placed items."""
+    opening = carton.opening()
+    for slot in SLOT_GRID:
+        fp = _slot_footprint(product, carton, slot)
+        if not _within(fp, opening):
+            continue
+        if any(_overlaps(fp, p) for p in placed):
+            continue
+        return slot, fp
+    return None, None
 
 
 @dataclass
@@ -73,8 +116,16 @@ class SequenceResult:
 
 
 def run_pack_sequence(items: list[PackItem], skills: dict, seed: int = 0,
-                      layout_seed: int = 100, journal=None, ranker=None) -> SequenceResult:
-    """Pack `items` (each an already-onboarded SKU) into one carton, in order."""
+                      layout_seed: int = 100, journal=None, ranker=None,
+                      policy: str = "skip") -> SequenceResult:
+    """Pack `items` (each an already-onboarded SKU) into one carton, in order.
+
+    Placed items become obstacles for the ones after them (real clearance is
+    verified by the place feasibility gate). Slots may be given per item or
+    auto-assigned. `policy`: "skip" (record the failure, keep going) or "halt"
+    (stop the whole sequence at the first item that fails)."""
+    if policy not in ("skip", "halt"):
+        raise ValueError(f"policy must be 'skip' or 'halt', got {policy!r}")
     rng = np.random.RandomState(layout_seed)
     n = len(items)
     products = []
@@ -83,28 +134,44 @@ def run_pack_sequence(items: list[PackItem], skills: dict, seed: int = 0,
         cy = -0.15 + i * (0.30 / max(1, n - 1)) + rng.uniform(-0.02, 0.02) if n > 1 else 0.0
         products.append(make_product(it.kind, cx, cy, rng.uniform(-np.pi, np.pi)))
 
+    placed: list = []  # base-frame footprints already in the carton
     results = []
     for k, it in enumerate(items):
-        # target = this item; distractors = the items still waiting behind it
-        world = World(products[k], default_carton(), slip_prob=0.12,
-                      distractors=products[k + 1:], rng=np.random.RandomState(seed * 1000 + k))
+        product = products[k]
+        carton = pack_carton()
+        if it.slot is not None:
+            slot, slot_fp = tuple(it.slot), _slot_footprint(product, carton, it.slot)
+        else:
+            slot, slot_fp = _assign_slot(product, carton, placed)
+        if slot is None:
+            results.append(ItemResult(it.sku, it.kind, None, False, "FAILED", "PLACE:no_slot"))
+            if policy == "halt":
+                break
+            continue
+
+        world = World(product, carton, slip_prob=0.12, distractors=products[k + 1:],
+                      occupied=placed, rng=np.random.RandomState(seed * 1000 + k))
         skill = skills[it.kind]
-        shifted = with_place_slot(skill, it.slot)
+        shifted = with_place_slot(skill, slot)
         perceiver = SimPerceiver(world, target_descriptor=skill.object_descriptor)
         r = run_skill(shifted, SimRobot(world), perceiver, seed=seed * 100 + k,
                       journal=journal, ranker=ranker)
-        results.append(ItemResult(it.sku, it.kind, tuple(it.slot), r.success,
+        results.append(ItemResult(it.sku, it.kind, tuple(slot), r.success,
                                   r.final_state, r.failure_reason))
+        if r.success:
+            placed.append(slot_fp)  # now occupies the carton for later items
+        elif policy == "halt":
+            break
 
     packed = sum(x.success for x in results)
     return SequenceResult(results=results, packed=packed, total=n, success=(packed == n))
 
 
-# A canonical high-mix order: one of each, three disjoint slots.
+# A canonical high-mix order: one of each; slots auto-assigned with clearance.
 DEFAULT_ORDER = [
-    PackItem("box-A", "box", (-0.055, -0.05)),
-    PackItem("cyl-B", "cylinder", (0.055, -0.05)),
-    PackItem("pouch-C", "pouch", (0.0, 0.055)),
+    PackItem("box-A", "box"),
+    PackItem("cyl-B", "cylinder"),
+    PackItem("pouch-C", "pouch"),
 ]
 
 

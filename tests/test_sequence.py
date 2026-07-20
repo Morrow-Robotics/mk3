@@ -1,8 +1,9 @@
 import numpy as np
+import pytest
 
-from morrow import PackItem, demo_pack_sequence, run_pack_sequence, with_place_slot
+from morrow import PackItem, demo_pack_sequence, run_pack_sequence, run_skill, with_place_slot
 from morrow.skill import SkillState
-from morrow.sim import onboard
+from morrow.sim import make_world, onboard, SimPerceiver, SimRobot
 
 
 def test_high_mix_sequence_packs_all():
@@ -41,3 +42,34 @@ def test_with_place_slot_shifts_offset_and_leaves_original():
     assert np.allclose(after, [before[0] + 0.05, before[1] - 0.03])
     assert skill.transition(*edge).rel["place_offset"] == before  # original untouched
     assert shifted.version_hash != skill.version_hash  # content-addressed
+
+
+def test_placed_item_blocks_the_place():
+    # An occupied region over the drop zone must make placement infeasible.
+    skill = onboard("box", "box")
+    w = make_world("box")
+    w.occupied = [np.array([0.0, -0.3, 0.4, 0.3])]  # whole carton is taken
+    r = run_skill(skill, SimRobot(w), SimPerceiver(w), seed=0)
+    assert not r.success and r.flagged
+    assert r.failure_reason is not None and "OVER_CARTON" in r.failure_reason
+
+
+def test_empty_occupied_leaves_single_product_unchanged():
+    skill = onboard("box", "box")
+    w = make_world("box")
+    assert not w.occupied  # default
+    assert run_skill(skill, SimRobot(w), SimPerceiver(w), seed=0).success
+
+
+def test_halt_policy_stops_at_first_failure():
+    skills = {"box": onboard("box", "box")}
+    order = [PackItem("b1", "box", (-0.05, 0.0)), PackItem("b2", "box", (0.05, 0.0))]
+    halt = run_pack_sequence(order, skills, seed=0, policy="halt")
+    skip = run_pack_sequence(order, skills, seed=0, policy="skip")
+    assert len(halt.results) == 1 and not halt.results[0].success  # stopped after item 0
+    assert len(skip.results) == 2  # kept going
+
+
+def test_invalid_policy_raises():
+    with pytest.raises(ValueError):
+        run_pack_sequence([], {}, policy="nonsense")

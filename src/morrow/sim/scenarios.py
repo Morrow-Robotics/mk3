@@ -21,6 +21,11 @@ def default_carton() -> Carton:
     return Carton(cx=0.20, cy=0.0, yaw=0.0, hx=0.12, hy=0.12, wall_z=0.12, floor_z=0.0)
 
 
+def pack_carton() -> Carton:
+    """A larger case for multi-item sequences (a real order sizes its own case)."""
+    return Carton(cx=0.20, cy=0.0, yaw=0.0, hx=0.15, hy=0.15, wall_z=0.12, floor_z=0.0)
+
+
 _carton = default_carton  # internal alias
 
 
@@ -103,3 +108,17 @@ def onboard(kind: str, sku_id: str, n_demos: int = 2):
         perceiver = SimPerceiver(world)
         traces.append(record_demo(world, robot, perceiver))
     return compile_skill(traces, sku_id)
+
+
+def onboard_timed(kind: str, sku_id: str, n_demos: int = 2):
+    """Onboard and stash wall-clock changeover time in metadata (not hashed).
+
+    The number the pitch cares about: minutes from demo to a running skill. In
+    sim it is milliseconds; on the bench the recorder path populates the same
+    field from a real teleop demo. Kept out of the content hash so determinism
+    and serialization round-trips are unaffected."""
+    import time
+    t0 = time.perf_counter()
+    skill = onboard(kind, sku_id, n_demos)
+    skill.metadata = dict(skill.metadata, onboarding_seconds=round(time.perf_counter() - t0, 4))
+    return skill

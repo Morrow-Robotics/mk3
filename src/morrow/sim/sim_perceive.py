@@ -121,4 +121,5 @@ class SimPerceiver:
             uncertainty={"selected_kind": sel["kind"], "n_candidates": len(detections),
                          "occluded": occluded, "selection_margin": round(margin, 4),
                          "ambiguous": bool(margin < AMBIGUITY_MARGIN)},
+            occupied_regions=[np.asarray(f).copy() for f in w.occupied],
         )

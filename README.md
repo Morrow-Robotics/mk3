@@ -131,7 +131,8 @@ tests/
   `Perceiver` boundary is ready for it.
 - **Bench robot adapter** — LeRobot / industrial arm behind `Robot`, plus the
   suction end-effector and vacuum sensor that make grasp verification real.
-- **Anything past packing** — kitting, mobile bases. Same FSM, later.
-  (High-mix *packing sequences* — several SKUs into one carton in order — are
-  here via `sequence.py`; the sim does not yet model item-on-item collision, so
-  slots are chosen disjoint.)
+- **Anything past packing** — kitting, mobile bases. Same FSM, later. High-mix
+  *packing sequences* (several SKUs into one carton, in order, with auto-assigned
+  slots and footprint-clearance checks so items don't land on each other) are
+  here via `sequence.py`; clearance uses 2.5D footprint AABBs a bench would
+  refine with real geometry.
