@@ -36,7 +36,7 @@ class BenchRecorder:
                   gripper_signal: float, product_mask: np.ndarray, product_centroid: np.ndarray,
                   product_footprint: np.ndarray, product_yaw: float) -> None:
         """Append one synchronized frame. Perception fields come from the bench
-        perceiver's helpers run per frame; robot fields from the arm + vacuum sensor."""
+        perceiver's helpers run per frame; robot fields from the arm + gripper grip-strength signal."""
         self._t.append(float(timestamp))
         self._poses.append(ee_pose)
         self._gcmd.append(float(gripper_command))

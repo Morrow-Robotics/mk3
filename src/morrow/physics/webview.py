@@ -145,7 +145,7 @@ function renderPack(stage, title, r, tag){
 function packs(){
   const stage=document.getElementById('stage');
   if(D.arm){Object.entries(D.arm.kinds).forEach(([kind,r])=>
-    renderPack(stage, kind+'  ·  SO-101 5-DOF arm', r, 'real arm · IK grasp'));}
+    renderPack(stage, kind+'  ·  SO-101 5-DOF arm', r, 'SO-101 model · IK'));}
   Object.entries(D.showcase.kinds).forEach(([kind,r])=>
     renderPack(stage, kind+'  ·  floating parallel-jaw (same skill, fast)', r));
 }
@@ -201,13 +201,13 @@ function marker(){
     const ann={sku:'marked',image:{w:cv.width,h:cv.height},scale_m_per_px:parseFloat(scaleIn.value),
       product:{kind:kindSel.value,bbox_px:prod.map(v=>Math.round(v)),height_m:parseFloat(heightIn.value)}};
     if(cart)ann.carton={bbox_px:cart.map(v=>Math.round(v))};
-    if(kindSel.value!=='pouch')ann.target='arm';  // box/cylinder pack on the REAL SO-101
+    if(kindSel.value!=='pouch')ann.target='arm';  // box/cylinder pack on the SO-101 model
     st.textContent='building skill + running '+(ann.target==='arm'?'SO-101':'floating')+' MuJoCo physics …'; rv.style.display='none';
     try{
       const resp=await fetch('/annotate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ann)});
       const j=await resp.json();
       if(j.ok){rv.style.display='block';rv.src='data:video/mp4;base64,'+j.mp4_b64;rv.play();
-        st.innerHTML='<b>'+j.final_state+'</b> · '+(j.embodiment==='so101'?'REAL SO-101':'floating gripper')+
+        st.innerHTML='<b>'+j.final_state+'</b> · '+(j.embodiment==='so101'?'SO-101 model':'floating gripper')+
           ' · packed in carton: '+(j.inside_carton?'yes':'no')+' · product half-size '+j.size.join(' × ')+' m';}
       else{st.textContent='✗ '+j.error;}
     }catch(err){st.textContent='request failed: '+err;}
@@ -266,7 +266,7 @@ def render_physics_page(showcase: dict, slots: list[dict], runtime: dict,
 <div class="rt">python {runtime['python']} · mujoco {runtime['mujoco']} · {runtime['platform']}</div>
 <div class="note"><b>Honest scope:</b> the customer clips on the left are your drop-in files —
 we do <i>not</i> download them or yet auto-extract a skill from video (that's the hard Phase-3 step).
-The teal-bordered center panels are the <i>real 5-DOF LeRobot SO-101</i> (MuJoCo Menagerie): an
+The teal-bordered center panels are the <i>SO-101 (MuJoCo Menagerie model, 5-DOF)</i> (MuJoCo Menagerie): an
 orientation-aware IK drives its position actuators tool-down and the parallel jaw grasps by friction —
 grasp is verified from two-finger contact, lift from real height, placement from footprint overlap.
 The plain panels below are the same compiled skill on a fast floating gripper. The SO-101's usable
@@ -289,7 +289,7 @@ top-down reach is small (x≈0.21–0.32 m, |y|&lt;0.10 m), so the cell sits in 
   <p class="lead">Grab a frame from any clip, drag a <i>rough</i> box over the product (or carton), then
   <b>SAM2 refine</b> to snap it to the real object (runs server-side on the clip — needs weights).
   Set the table scale (metres per pixel) and product height, then build a physics skill and watch the
-  <b>real SO-101</b> pack it (box/cylinder; pouch falls back to the fast floating gripper). Honest:
+  <b>SO-101 model</b> pack it (box/cylinder; pouch falls back to the fast floating gripper). Honest:
   monocular clips have no metric scale, so you supply m/px — SAM2 gives the pixel geometry, not depth.</p>
   <div class="mrow">
     <input type="file" id="frameFile" accept="image/*">
@@ -309,7 +309,7 @@ top-down reach is small (x≈0.21–0.32 m, |y|&lt;0.10 m), so the cell sits in 
     <div class="status" id="resStatus"></div></div>
 </section>
 <div class="foot">Frames rendered by MuJoCo; the FSM (compile → run_skill) is byte-identical to the
-analytic sim and to the eventual bench. Cartesian EE waypoints map to a real SO-101 via IK.</div>
+analytic sim and to the eventual bench. Cartesian EE waypoints map to a SO-101 model via IK.</div>
 </div>
 <script>window.__PHYS__ = {data};</script><script>{_JS}</script></body></html>"""
 
@@ -323,7 +323,7 @@ def serve_physics(host: str = "127.0.0.1", port: int = 8001, videos_dir: str = "
         watch = build_watch_showcase()
     except Exception as e:  # SAM2 optional / clip-specific — never block the dashboard
         print(f"  watch panel skipped: {e}", flush=True)
-    print("rendering REAL SO-101 arm packs (5-DOF IK, slower) ...", flush=True)
+    print("rendering SO-101 model arm packs (5-DOF IK, slower) ...", flush=True)
     arm_showcase = build_arm_showcase(kinds=arm_kinds)
     print("rendering fast floating-gripper packs ...", flush=True)
     showcase = build_showcase(kinds=kinds)
@@ -371,7 +371,7 @@ def serve_physics(host: str = "127.0.0.1", port: int = 8001, videos_dir: str = "
 
         def _annotate(self, ann):
             from .showcase import _inside_carton, _mp4_b64
-            if ann.get("target") == "arm":  # pack on the REAL SO-101
+            if ann.get("target") == "arm":  # pack on the SO-101 model
                 from .watch import pack_annotation_on_arm
                 frames, size, _c, result, world = pack_annotation_on_arm(
                     ann, seed=int(ann.get("seed", 0)), capture=True)

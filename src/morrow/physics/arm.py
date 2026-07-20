@@ -1,6 +1,6 @@
-"""arm.py — the REAL LeRobot SO-101 arm as the Robot boundary.
+"""arm.py — the SO-101 model (LeRobot, in MuJoCo) as the Robot boundary.
 
-Phase 3 replaces the floating mocap gripper with the actual 5-DOF SO-101
+Phase 3 replaces the floating mocap gripper with the SO-101 model (5-DOF, in MuJoCo)
 (MuJoCo Menagerie, `robotstudio_so101`). The same `run_skill` FSM drives it:
 the skill's Cartesian waypoints are the *pinch point* between the fingers, and
 an orientation-aware damped-least-squares IK drives the position actuators
@@ -41,8 +41,23 @@ from ..geometry import Transform, frame, translation, wrap_angle, yaw_of
 from ..scene import SceneState
 from ..sim.world import rect_aabb
 
-_MENAGERIE = os.path.expanduser(
-    "~/.cache/robot_descriptions/mujoco_menagerie/robotstudio_so101")
+def _menagerie_dir() -> str:
+    """Locate the SO-101 MJCF directory. Override with $MORROW_SO101_DIR; else the
+    robot_descriptions / mujoco_menagerie cache. Errored clearly, lazily, at load
+    time — importing this module never requires the assets to be present."""
+    cands = []
+    if os.environ.get("MORROW_SO101_DIR"):
+        cands.append(os.environ["MORROW_SO101_DIR"])
+    cands.append(os.path.expanduser(
+        "~/.cache/robot_descriptions/mujoco_menagerie/robotstudio_so101"))
+    for c in cands:
+        if c and os.path.isfile(os.path.join(c, "so101.xml")):
+            return c
+    raise FileNotFoundError(
+        "SO-101 MJCF not found. Set $MORROW_SO101_DIR to a directory containing "
+        "so101.xml (e.g. mujoco_menagerie/robotstudio_so101), or install it via "
+        "`python -c \"import robot_descriptions.loaders.mujoco as l; "
+        "l.load_robot_description('so_arm101_mj_description')\"`.")
 
 ARM_JOINTS = ["shoulder_pan", "shoulder_lift", "elbow_flex", "wrist_flex", "wrist_roll"]
 OPEN = 0.7      # ctrl to hold the jaws open enough to straddle a ~4 cm product
@@ -121,7 +136,7 @@ def build_arm_scene(kind: str, hx: float, hy: float, hz: float,
 
 def _load(xml: str) -> mujoco.MjModel:
     """Load a scene that `<include>`s so101.xml, resolving meshes via its dir."""
-    fd, path = tempfile.mkstemp(suffix=".xml", dir=_MENAGERIE)
+    fd, path = tempfile.mkstemp(suffix=".xml", dir=_menagerie_dir())
     try:
         os.write(fd, xml.encode()); os.close(fd)
         return mujoco.MjModel.from_xml_path(path)
@@ -135,7 +150,7 @@ def _quat_yaw(q) -> float:
 
 
 class ArmWorld:
-    """A MuJoCo cell built around the real SO-101, plus the queries and the
+    """A MuJoCo cell built around the SO-101 model, plus the queries and the
     IK/drive primitives the Robot boundary needs. Coordinates are the arm's."""
 
     SAFE_Z = 0.10  # the small arm can only stay tool-down up to ~0.10 m
@@ -288,7 +303,7 @@ CAPTURE_EVERY = 2      # interpolated steps between render captures
 
 
 class ArmRobot:
-    has_vacuum = False
+    end_effector = "parallel_jaw"
 
     def __init__(self, world: ArmWorld, on_frame=None):
         self.world = world
@@ -389,10 +404,10 @@ class ArmPerceiver:
 
 
 # --------------------------------------------------------------------------
-# Demonstration on the real arm -> compiled skill.
+# Demonstration on the SO-101 model -> compiled skill.
 # --------------------------------------------------------------------------
 def record_arm_demo(world: ArmWorld):
-    """Script an ideal pick-place on the REAL SO-101 and record the physics
+    """Script an ideal pick-place on the SO-101 model and record the physics
     consequences (the pinch trajectory), so `compile_skill` is unchanged."""
     from ..geometry import frame as _frame
     from ..trace import DemonstrationTrace

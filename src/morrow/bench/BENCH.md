@@ -13,16 +13,16 @@ robot, perceiver = SimRobot(world), SimPerceiver(world)
 
 # bench — same run_skill, same everything downstream
 from morrow.bench import BenchRobot, BenchPerceiver
-robot = BenchRobot(arm=arm, vacuum=vac, calibration=calib)
+robot = SO101BenchRobot(arm=arm, gripper=grip, calibration=calib)
 perceiver = BenchPerceiver(camera=cam, segmenter=sam, calibration=calib)
 ```
 
 ## Hardware (minimum)
 
 - **Arm**: top-down capable (LeRobot-class for the demo; industrial later).
-- **End-effector**: suction cup(s). Budget real time to iterate cup size,
+- **End-effector**: standard parallel jaw (the LeRobot SO-101 gripper), NOT suction. Budget time to tune grip force + finger pads,
   durometer, and flow rate against your actual film — this eats schedules.
-- **Vacuum pressure sensor** on one analog input. This is the grasp verdict.
+- **Grip sensor** (jaw closed-width or grip force). This is the grasp verdict.
   ~$50 and it does more for reliability than any amount of ranking.
 - **Overhead RGB-D camera**, rigidly mounted, seeing the staging area + carton.
 
@@ -42,7 +42,7 @@ perceiver = BenchPerceiver(camera=cam, segmenter=sam, calibration=calib)
 
 ## Invariants to preserve (don't "fix" these away)
 
-- **Grasp is verified by the vacuum sensor, never by vision** (the tool
+- **Grasp is verified by the gripper contact/force, never by vision** (the tool
   occludes the product at grasp time).
 - **Re-perceive before every attempt**; recovery runs from the actual current
   state.

@@ -6,7 +6,7 @@ what the SkillProgram emits (Cartesian EE waypoints). Two fingers on slide
 joints close under position actuators; the object is held by friction, not by an
 `attached` flag. This is the standard LeRobot parallel jaw — no suction.
 
-When a real SO-101 MJCF is dropped in, the same Cartesian waypoints drive it via
+When a SO-101 model MJCF is dropped in, the same Cartesian waypoints drive it via
 IK; nothing above the Robot boundary changes.
 """
 

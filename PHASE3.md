@@ -1,4 +1,4 @@
-# morrow — physics + CV + the real LeRobot arm (Phase 3)
+# morrow — physics + CV + the SO-101 model (Phase 3)
 
 `README.md` covers the analytic core: a demonstration compiler that turns one
 short demo into a **verified state-machine skill** (`READY → APPROACHED → GRASPED
@@ -6,8 +6,16 @@ short demo into a **verified state-machine skill** (`READY → APPROACHED → GR
 over a `Robot`/`Perceiver` boundary. Same FSM, same compiler, same conditions.
 
 This document covers the layer built on top of it: **customer video → physics-
-accurate MuJoCo sim on the actual LeRobot SO-101 arm**. It is honest about what is
-real and what a monocular consumer clip cannot give you.
+accurate MuJoCo sim on the SO-101 model**. It is honest about what is real and
+what a monocular consumer clip cannot give you.
+
+> **"SO-101 model", not a physical arm.** Everything here runs the LeRobot SO-101's
+> real MJCF (MuJoCo Menagerie `robotstudio_so101`) inside MuJoCo — correct
+> kinematics and a friction-grasp contact model, but not physical hardware. The
+> load-bearing next step (Phase 4) is bringing up the physical SO-101 behind the
+> same `Robot`/`Perceiver` boundary (`bench/SO101BenchRobot`, currently a scaffold)
+> and measuring the sim-to-real gap. The `100/88/0` benchmark is analytic-sim
+> regression evidence, **not** physical reliability.
 
 > Optional dependency. `pip install -e '.[physics]'` (MuJoCo). The SAM2 pieces
 > also need real weights — set `MORROW_SAM2_CKPT` to a `sam2.1` checkpoint. Every
@@ -22,15 +30,15 @@ against three embodiments that all implement the `Robot`/`Perceiver` protocols:
 |---|---|---|---|
 | Analytic sim | `morrow.sim` | seal geometry | numpy only, the frozen benchmark |
 | Floating parallel-jaw | `physics/world.py` (`MjWorld`) | two-finger **contact** | MuJoCo, fast, mocap-welded gripper |
-| **Real SO-101 arm** | `physics/arm.py` (`ArmWorld`) | two-finger **contact** | MuJoCo Menagerie, 5-DOF + IK |
+| **SO-101 (MuJoCo model)** | `physics/arm.py` (`ArmWorld`) | two-finger **contact** | MuJoCo Menagerie, 5-DOF + IK |
 
 No suction anywhere — the first arms are the standard LeRobot parallel jaw, so
 grasp is verified from hardware contact between the product and *both* fingers,
 never from vision.
 
-## The real arm — `physics/arm.py`
+## The SO-101 model, in physics — `physics/arm.py`
 
-`ArmWorld` / `ArmRobot` / `ArmPerceiver` wrap the actual **SO-101** (MuJoCo
+`ArmWorld` / `ArmRobot` / `ArmPerceiver` wrap the **SO-101 model** (MuJoCo
 Menagerie `robotstudio_so101`). An orientation-aware damped-least-squares IK
 drives the position actuators tool-down to put the *pinch point between the
 fingers* on each Cartesian waypoint; the jaw grasps by friction; `run_skill`
@@ -67,7 +75,7 @@ The full **watch → do** path, built to the honest boundary:
 2. A monocular clip has **no metric scale**, so the operator supplies metres-per-
    pixel + product kind/height (same honesty as `annotate`). SAM2 gives the pixel
    geometry, nothing invents depth.
-3. The watched workflow is reproduced by the **real SO-101** in its validated reach
+3. The watched workflow is reproduced by the **SO-101 model** in its validated reach
    envelope — the same task, executed and verified in physics, not a pixel-perfect
    metric replay (impossible from one uncalibrated camera). The watched product is
    clamped into the arm's graspable/reachable range so the pack is always valid.
@@ -100,17 +108,17 @@ morrow annotate examples/annotation_box.json   # a marked-up clip → physics pa
 ```
 
 Drop customer clips into `./videos/` (git-ignored). The dashboard shows, left to
-right: the clips, the **real SO-101** packing (teal hero), the watch→SAM2→pack
+right: the clips, the **SO-101 model** packing (teal hero), the watch→SAM2→pack
 panel with the activity sparkline, the fast floating-gripper packs, and an
 **interactive marker** — grab any clip frame, drag a rough box, hit *SAM2 refine*,
-and pack it on the real arm.
+and pack it on the SO-101 model.
 
 ## Layout
 
 ```
 src/morrow/physics/
   world.py  mj_robot.py  mj_perceive.py  record.py   # floating parallel-jaw cell
-  arm.py                                             # the REAL SO-101 (IK + friction grasp)
+  arm.py                                             # the SO-101 model (IK + friction grasp)
   watch.py                                           # SAM2 segment → annotation → SO-101 pack
   pattern.py                                         # cv2 packing-activity profile
   film.py  showcase.py  webview.py                   # render + the `morrow cell` dashboard

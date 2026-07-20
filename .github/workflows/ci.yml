@@ -1,0 +1,26 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  # Proves the importorskip guarantee: a BARE install (no MuJoCo, no SAM2) is
+  # green, with the physics/CV tests skipped rather than failing or erroring.
+  bare:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install (bare, dev only)
+        run: python -m pip install -e '.[dev]'
+      - name: Analytic benchmark stays 100/88/0
+        run: morrow eval --n 100
+      - name: Pytest (physics/CV tests skip cleanly)
+        run: pytest -ra

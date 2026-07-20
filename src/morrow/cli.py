@@ -236,7 +236,7 @@ def main(argv=None) -> None:
     cl.add_argument("--videos", default="videos", help="folder of drop-in customer clips")
     cl.add_argument("--shot", help="render the dashboard to an HTML file and exit")
     cl.add_argument("--no-arm", action="store_true",
-                    help="skip the (slower) real SO-101 arm render in --shot")
+                    help="skip the (slower) SO-101 model arm render in --shot")
     cl.set_defaults(fn=_cell)
 
     sv = sub.add_parser("save", help="onboard a skill and write it to JSON")

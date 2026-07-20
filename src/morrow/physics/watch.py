@@ -17,9 +17,9 @@ a faked one:
     Pixels → metres uses that scale; nothing invents depth.
 
   * The watched workflow (pick this product, place it in that carton) is then
-    reproduced by the REAL SO-101 in its validated reach envelope. It is NOT a
+    reproduced by the SO-101 model in its validated reach envelope. It is NOT a
     pixel-perfect metric replay (impossible from an uncalibrated clip) — it is
-    the same task, executed and verified in MuJoCo physics on the real arm.
+    the same task, executed and verified in MuJoCo physics on the SO-101 model.
 
 `have_sam2()` gates everything: if the checkpoint is absent the caller skips,
 exactly like the MuJoCo optional dependency.
@@ -32,17 +32,17 @@ from dataclasses import dataclass
 
 import numpy as np
 
-# SAM2 hiera-tiny checkpoint. Overridable; falls back to the known local path.
+# SAM2 hiera-tiny checkpoint. Set $MORROW_SAM2_CKPT; else a neutral cache default.
+# No absolute personal paths — a fresh machine configures this via the env var.
 _CKPT_ENV = "MORROW_SAM2_CKPT"
 _CKPT_CANDIDATES = [
-    os.path.expanduser("~/Documents/morrow-video/models/poc3/sam2.1_hiera_tiny.pt"),
     os.path.expanduser("~/.cache/morrow/sam2.1_hiera_tiny.pt"),
 ]
 _CFG = "configs/sam2.1/sam2.1_hiera_t.yaml"
 
 # Arm-graspable clamps (metres, half-extents). The SO-101 jaw + reach are small
 # and its top-down envelope is proven only up to z≈0.10, so a watched product is
-# mapped into what the real arm can actually grip AND reach (height bounded so the
+# mapped into what the SO-101 model can actually grip AND reach (height bounded so the
 # demo's over-approach stays tool-down-reachable). Honest: the workflow transfers,
 # the absolute size does not — a monocular clip can't fix metric scale anyway.
 ARM_GRASP_HALF = 0.02

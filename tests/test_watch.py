@@ -61,7 +61,7 @@ def test_segment_click_refines_a_rough_box():
 
 
 def test_marked_annotation_packs_on_the_so101():
-    # An operator annotation (canvas px + scale) drives the REAL arm to VERIFIED.
+    # An operator annotation (canvas px + scale) drives the SO-101 model to VERIFIED.
     from morrow.physics.watch import pack_annotation_on_arm
     ann = {"sku": "marked", "image": {"w": 480, "h": 270}, "scale_m_per_px": 0.0007,
            "product": {"kind": "box", "bbox_px": [210, 120, 300, 190], "height_m": 0.06},

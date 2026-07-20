@@ -17,7 +17,7 @@ CAPTURE_EVERY = 10  # steps between frames when a capture hook is attached
 
 
 class MjRobot:
-    has_vacuum = False
+    end_effector = "parallel_jaw"
 
     def __init__(self, world: MjWorld, on_frame=None):
         self.world = world

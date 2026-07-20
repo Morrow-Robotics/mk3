@@ -3,7 +3,7 @@
 Deterministic given `seed_base`: same seeds -> same worlds -> same numbers, so a
 result is reproducible and a regression is visible. Each product class is
 onboarded once, then run across N randomized poses (product + carton moved,
-full yaw, suction slip noise). The open-loop replay baseline is run on the same
+full yaw, grasp-slip noise). The open-loop replay baseline is run on the same
 worlds for the changeover contrast.
 """
 

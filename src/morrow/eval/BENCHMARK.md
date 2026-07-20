@@ -11,7 +11,7 @@ same worlds, runs the open-loop replay baseline.
 Randomization per trial (seeded by `seed_base + i`, so fully reproducible):
 - product xy in the staging region, **full yaw** (−π, π]
 - carton xy jittered ±4 cm
-- 12% suction-slip probability on otherwise-good seals
+- 12% grasp-slip probability on otherwise-good grasps
 
 ## Metrics
 

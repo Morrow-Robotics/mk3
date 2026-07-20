@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from morrow import DemonstrationTrace, Perceiver, Robot
-from morrow.bench import BenchPerceiver, BenchRecorder, BenchRobot
+from morrow.bench import BenchPerceiver, BenchRecorder, SO101BenchRobot as BenchRobot
 from morrow.geometry import frame
 
 
@@ -23,12 +23,14 @@ def test_bench_hardware_calls_are_honest_stubs():
 
 
 def test_bench_holding_is_derived_not_stubbed():
-    # holding() should be pure threshold logic over gripper_signal, no vision.
+    # holding() is pure threshold logic over gripper_signal (end-effector-neutral),
+    # never vision. High grip signal == jaws closed on the product.
     class FakeSensorRobot(BenchRobot):
         def gripper_signal(self):
-            return 0.1  # sealed
+            return 0.8  # gripping
 
-    assert FakeSensorRobot(vacuum_threshold=0.5).holding() is True
+    assert FakeSensorRobot(grip_threshold=0.5).holding() is True
+    assert BenchRobot().end_effector == "parallel_jaw"
 
 
 def test_recorder_assembly_produces_a_valid_trace():

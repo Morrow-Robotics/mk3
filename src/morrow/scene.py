@@ -26,7 +26,7 @@ class SceneState:
     carton_frame: Transform  # base-frame carton pose
     carton_opening: np.ndarray  # (4,) [xmin, ymin, xmax, ymax] base-frame footprint
     gripper_pose: Transform  # current T_base_ee
-    gripper_signal: float  # raw hardware reading (vacuum: low == holding)
+    gripper_signal: float  # raw end-effector reading (vacuum pressure, jaw gap, or grip force)
     holding: bool  # hardware verdict: is something attached right now
     perception_confidence: float  # 0..1
     timestamp: float

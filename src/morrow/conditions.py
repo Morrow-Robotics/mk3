@@ -2,7 +2,7 @@
 
 Each condition is a `{"name": ..., "params": {...}}` dict living on a
 transition. Grasp is verified from *hardware* (`scene.holding`, driven by the
-vacuum/force signal) rather than vision, because the gripper occludes the
+end-effector grip signal) rather than vision, because the gripper occludes the
 product at exactly the moment you need to confirm the grasp. Placement and
 clearance are verified from vision (footprint overlap with the carton opening).
 """
@@ -32,7 +32,7 @@ def check(cond: dict, scene: SceneState, robot) -> bool:
         return float(np.linalg.norm(dxy)) < p.get("xy_tol", 0.03)
 
     if name == "grasped":
-        return scene.holding  # hardware verdict (vacuum/force), never vision
+        return scene.holding  # hardware verdict (vacuum seal / two-finger contact / force), never vision
 
     if name == "lifted":
         margin = p.get("margin", 0.04)

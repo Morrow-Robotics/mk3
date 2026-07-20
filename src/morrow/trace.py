@@ -22,7 +22,7 @@ class DemonstrationTrace:
 
     All list fields are indexed by the same frame counter and share `timestamps`.
     Poses are 4x4 base-frame transforms. `gripper_signal` is the raw hardware
-    reading (vacuum pressure, normalized 0..1, low == strong seal). Masks are
+    reading (end-effector grip signal, normalized 0..1). Masks are
     boolean HxW arrays in the overhead camera image.
     """
 

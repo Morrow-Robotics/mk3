@@ -7,6 +7,6 @@ compiler, executor, and eval accept them unchanged once filled. See BENCH.md.
 
 from .bench_perceive import BenchPerceiver
 from .bench_record import BenchRecorder
-from .bench_robot import BenchRobot
+from .bench_robot import BenchRobot, SO101BenchRobot
 
-__all__ = ["BenchRobot", "BenchPerceiver", "BenchRecorder"]
+__all__ = ["BenchRobot", "SO101BenchRobot", "BenchPerceiver", "BenchRecorder"]

@@ -54,5 +54,5 @@ class BenchPerceiver:
     def observe(self) -> SceneState:
         raise NotImplementedError(
             f"{_TODO}: compose the helpers above into a SceneState. "
-            "Grasp is verified by the robot's vacuum sensor, not here."
+            "Grasp is verified by the robot's gripper (contact/force), not here."
         )

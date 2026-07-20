@@ -9,7 +9,7 @@ from .world import World
 
 
 class SimRobot:
-    has_vacuum = True
+    end_effector = "vacuum"
 
     def __init__(self, world: World):
         self.world = world

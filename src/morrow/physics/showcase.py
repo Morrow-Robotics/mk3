@@ -54,7 +54,7 @@ def build_showcase(kinds=("box", "cylinder", "pouch"), seed: int = 0, camera: st
 
 
 def build_arm_showcase(kinds=("box",), seed: int = 0, camera: str = "cell") -> dict:
-    """Render the REAL SO-101 5-DOF arm executing the same compiled skill —
+    """Render the SO-101 model (5-DOF) executing the same compiled skill —
     orientation-aware IK + friction grasp, not a floating mocap gripper."""
     out = {"kinds": {}}
     for kind in kinds:

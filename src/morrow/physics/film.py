@@ -31,7 +31,7 @@ def capture_pack(kind: str = "box", seed: int = 0, px: float = -0.15, py: float 
 
 def capture_arm_pack(kind: str = "box", seed: int = 0, px: float = 0.27, py: float = -0.06,
                      pyaw: float = 0.0, camera: str = "cell", height: int = 260, width: int = 340):
-    """Render the REAL SO-101 arm executing the compiled skill end-to-end."""
+    """Render the SO-101 model arm executing the compiled skill end-to-end."""
     from .arm import ArmPerceiver, ArmRobot, ArmWorld, onboard_arm
     skill = onboard_arm(kind, f"so101-{kind}")
     world = ArmWorld(kind, px=px, py=py, pyaw=pyaw)

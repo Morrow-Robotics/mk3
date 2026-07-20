@@ -155,7 +155,7 @@ function render(){
   s=el('section');
   s.appendChild(el('div','eyebrow','3 \\u00b7 Recovery'));
   s.appendChild(el('h2','A forced grasp failure, recovered from the current state'));
-  s.appendChild(el('p','lead','The first full round of grasps is made to miss. The cell detects it from the vacuum signal, runs the transition\\u2019s recovery, and finishes \\u2014 no human.'));
+  s.appendChild(el('p','lead','The first full round of grasps is made to miss. The cell detects it from the hardware grasp signal, runs the transition\\u2019s recovery, and finishes \\u2014 no human.'));
   s.appendChild(timeline(D.forced_failure));
   root.appendChild(s);
 
