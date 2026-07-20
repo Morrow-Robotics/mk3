@@ -9,8 +9,6 @@ worlds for the changeover contrast.
 
 from __future__ import annotations
 
-import time
-
 import numpy as np
 
 from ..execute import run_skill
@@ -29,10 +27,7 @@ def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int
     build = stress if stress_mode else randomize
     report = {"n": n, "seed_base": seed_base, "stress": stress_mode, "kinds": {}}
     for kind in kinds:
-        t0 = time.perf_counter()
         skill = onboard(kind, kind, n_demos=n_demos)
-        onboard_s = time.perf_counter() - t0
-
         w0 = make_world(kind)
         trace = record_demo(w0, SimRobot(w0), SimPerceiver(w0))
 
@@ -45,7 +40,7 @@ def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int
 
         report["kinds"][kind] = {
             "skill_hash": skill.version_hash,
-            "onboarding": {"n_demos": n_demos, "seconds": round(onboard_s, 3), "code_changes": 0},
+            "onboarding": {"n_demos": n_demos, "code_changes": 0},
             "morrow": summarize(results).as_dict(),
             "baseline_open_loop_success_rate": baseline_ok / n,
         }
@@ -57,8 +52,8 @@ def format_report(report: dict) -> str:
     lines = [f"benchmark ({mode})  n={report['n']}  seed_base={report['seed_base']}", ""]
     for kind, r in report["kinds"].items():
         m = r["morrow"]
-        lines.append(f"[{kind}]  skill {r['skill_hash']}  onboarded in "
-                     f"{r['onboarding']['seconds']}s from {r['onboarding']['n_demos']} demos, "
+        lines.append(f"[{kind}]  skill {r['skill_hash']}  onboarded from "
+                     f"{r['onboarding']['n_demos']} demos, "
                      f"{r['onboarding']['code_changes']} code changes")
         lines.append(f"    morrow   final {m['final_success_rate']*100:5.1f}%   "
                      f"first-attempt {m['first_attempt_rate']*100:5.1f}%   "
