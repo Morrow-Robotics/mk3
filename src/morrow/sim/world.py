@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..geometry import Transform, frame, translation, wrap_angle, yaw_of
+from ..geometry import Transform, frame, translation, wrap_angle, xy_in_bbox, yaw_of
 
 
 def rect_aabb(cx: float, cy: float, hx: float, hy: float, yaw: float) -> np.ndarray:
@@ -142,19 +142,10 @@ class World:
         self.vacuum_on = False
         if self.attached:
             self.attached = False
-            inside = _xy_in_bbox((self.product.cx, self.product.cy), self.carton.opening())
+            inside = xy_in_bbox((self.product.cx, self.product.cy), self.carton.opening())
             self.in_carton = bool(inside)
 
     def signal(self) -> float:
         if self.attached:
             return 0.1  # strong vacuum
         return 0.5 if self.vacuum_on else 0.95
-
-    def reset_episode(self) -> None:
-        self._grasp_attempts = 0
-        self.flagged = False
-
-
-def _xy_in_bbox(xy, bbox) -> bool:
-    x0, y0, x1, y1 = bbox
-    return bool(x0 <= xy[0] <= x1 and y0 <= xy[1] <= y1)

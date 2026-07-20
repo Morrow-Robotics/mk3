@@ -20,16 +20,11 @@ from __future__ import annotations
 
 import numpy as np
 
-from .geometry import translation, yaw_of
+from .geometry import rot2, translation, yaw_of
 from .skill import EDGES, SkillProgram, SkillState, Transition, hash_skill
 from .trace import DemonstrationTrace
 
 TIMEOUT = 5.0
-
-
-def _rot2(theta: float) -> np.ndarray:
-    c, s = np.cos(theta), np.sin(theta)
-    return np.array([[c, -s], [s, c]])
 
 
 def find_grasp_index(trace: DemonstrationTrace) -> int:
@@ -113,11 +108,11 @@ def compile_skill(traces: list[DemonstrationTrace], sku_id: str) -> SkillProgram
     top_g = float(trace.product_centroids[gi][2])
     grasp_z = _ee_z(trace, gi) - top_g
     yaw_g = float(trace.product_yaws[gi])
-    grasp_offset = _rot2(-yaw_g) @ (_ee_xy(trace, gi) - trace.product_centroids[gi][:2])
+    grasp_offset = rot2(-yaw_g) @ (_ee_xy(trace, gi) - trace.product_centroids[gi][:2])
     lift_height = _ee_z(trace, li) - table
     travel_z = _ee_z(trace, oi) - carton_floor
     place_z = _ee_z(trace, ri) - carton_floor
-    place_offset = _rot2(-carton_yaw) @ (_ee_xy(trace, ri) - carton_xy)
+    place_offset = rot2(-carton_yaw) @ (_ee_xy(trace, ri) - carton_xy)
     withdraw_z = _ee_z(trace, len(trace) - 1) - carton_floor
 
     rim_z = float(trace.meta.get("carton_rim_z", carton_floor + 0.2))

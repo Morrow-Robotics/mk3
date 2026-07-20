@@ -64,7 +64,7 @@ def _recover(action: str, robot) -> None:
     # reobserve_and_regenerate, stop_replan_transport, reobserve_escalate: just re-perceive
 
 
-def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=None,
+def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42,
               journal=None, ranker=None) -> RunResult:
     skill.validate()
     current = SkillState.READY
@@ -79,8 +79,6 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
 
     def emit(ev: dict) -> None:
         timeline.append(ev)
-        if on_event is not None:
-            on_event(ev)
 
     # Selection gate: if perception can't tell the target from a distractor,
     # flag for a human rather than grasp the wrong SKU.

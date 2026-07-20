@@ -10,14 +10,9 @@ from __future__ import annotations
 
 import numpy as np
 
-from .geometry import Transform, frame, translation, yaw_of
+from .geometry import Transform, frame, rot2, translation, yaw_of
 from .scene import SceneState
 from .skill import SkillProgram, SkillState
-
-
-def _rot2(theta: float) -> np.ndarray:
-    c, s = np.cos(theta), np.sin(theta)
-    return np.array([[c, -s], [s, c]])
 
 
 def grasp_point_xy(skill: SkillProgram, scene: SceneState, params: dict) -> np.ndarray:
@@ -25,7 +20,7 @@ def grasp_point_xy(skill: SkillProgram, scene: SceneState, params: dict) -> np.n
     rel = skill.transition(SkillState.APPROACHED, SkillState.GRASPED).rel
     nom = np.array(rel["grasp_offset"])
     off = nom + np.array(params.get("grasp_offset_noise", [0.0, 0.0]))
-    world_off = _rot2(params["grasp_yaw"]) @ off
+    world_off = rot2(params["grasp_yaw"]) @ off
     return scene.product_centroid[:2] + world_off
 
 
@@ -35,7 +30,7 @@ def place_point_xy(skill: SkillProgram, scene: SceneState, params: dict) -> np.n
     nom = np.array(rel["place_offset"])
     off = nom + np.array(params.get("place_offset_noise", [0.0, 0.0]))
     cf = scene.carton_frame
-    world_off = _rot2(yaw_of(cf)) @ off
+    world_off = rot2(yaw_of(cf)) @ off
     return translation(cf)[:2] + world_off
 
 

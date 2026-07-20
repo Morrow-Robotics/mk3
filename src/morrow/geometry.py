@@ -8,6 +8,9 @@ object-relative / carton-relative math below exact and easy to read.
 
 Real hardware with tilted approaches would add roll/pitch here; the rest of
 the stack consumes 4x4 transforms and does not care.
+
+It also holds the few small 2D helpers the planner, gates, and sim share —
+planar rotation, point-in-box, box overlap — so that math lives in one place.
 """
 
 from __future__ import annotations
@@ -32,10 +35,6 @@ def frame(position, yaw: float = 0.0) -> Transform:
     )
 
 
-def identity() -> Transform:
-    return np.eye(4, dtype=np.float64)
-
-
 def inv(T: Transform) -> Transform:
     """Inverse of a rigid transform (transpose-rotation trick, no solve)."""
     R = T[:3, :3]
@@ -44,24 +43,6 @@ def inv(T: Transform) -> Transform:
     out[:3, :3] = R.T
     out[:3, 3] = -R.T @ t
     return out
-
-
-def compose(*transforms: Transform) -> Transform:
-    """Chain transforms left-to-right: compose(A, B, C) == A @ B @ C."""
-    out = identity()
-    for T in transforms:
-        out = out @ T
-    return out
-
-
-def relative(T_ref: Transform, T: Transform) -> Transform:
-    """Express pose T in the frame of T_ref: inv(T_ref) @ T."""
-    return inv(T_ref) @ T
-
-
-def apply_frame(T_ref: Transform, T_rel: Transform) -> Transform:
-    """Instantiate a frame-relative pose back into the world: T_ref @ T_rel."""
-    return T_ref @ T_rel
 
 
 def translation(T: Transform) -> np.ndarray:
@@ -75,3 +56,21 @@ def yaw_of(T: Transform) -> float:
 def wrap_angle(a: float) -> float:
     """Wrap an angle to (-pi, pi]."""
     return float(np.arctan2(np.sin(a), np.cos(a)))
+
+
+def rot2(theta: float) -> np.ndarray:
+    """2x2 rotation matrix (the planar workhorse for object/carton-frame offsets)."""
+    c, s = np.cos(theta), np.sin(theta)
+    return np.array([[c, -s], [s, c]])
+
+
+def xy_in_bbox(xy, bbox) -> bool:
+    """Is point xy inside axis-aligned [xmin, ymin, xmax, ymax]?"""
+    return bool(bbox[0] <= xy[0] <= bbox[2] and bbox[1] <= xy[1] <= bbox[3])
+
+
+def bbox_overlap_area(a, b) -> float:
+    """Intersection area of two axis-aligned [xmin, ymin, xmax, ymax] boxes."""
+    w = min(a[2], b[2]) - max(a[0], b[0])
+    h = min(a[3], b[3]) - max(a[1], b[1])
+    return float(max(0.0, w) * max(0.0, h))

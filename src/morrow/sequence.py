@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from .execute import run_skill
+from .geometry import bbox_overlap_area
 from .skill import SkillProgram, SkillState, hash_skill
 from .sim.scenarios import make_product, pack_carton
 from .sim.sim_perceive import SimPerceiver
@@ -79,9 +80,8 @@ def _within(inner, outer) -> bool:
 
 
 def _overlaps(a, b, clearance: float = 0.005) -> bool:
-    w = min(a[2] + clearance, b[2]) - max(a[0] - clearance, b[0])
-    h = min(a[3] + clearance, b[3]) - max(a[1] - clearance, b[1])
-    return w > 0 and h > 0
+    inflated = (a[0] - clearance, a[1] - clearance, a[2] + clearance, a[3] + clearance)
+    return bbox_overlap_area(inflated, b) > 0.0
 
 
 def _assign_slot(product, carton, placed):

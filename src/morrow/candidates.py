@@ -12,10 +12,11 @@ the carton. These are feasibility checks, not industrial safety.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
+from .geometry import bbox_overlap_area, xy_in_bbox
 from .motion import grasp_point_xy, instantiate_edge, place_point_xy
 from .scene import SceneState
 from .skill import STATE_ORDER, SkillProgram, SkillState
@@ -26,7 +27,6 @@ class Candidate:
     id: str
     params: dict
     score: float = 0.0
-    meta: dict = field(default_factory=dict)
 
 
 def _seed(seed: int, edge, rnd: int) -> int:
@@ -69,11 +69,11 @@ def apply_feasibility(cands: list[Candidate], skill: SkillProgram, scene: SceneS
             continue
         if edge[1] is SkillState.GRASPED:
             gxy = grasp_point_xy(skill, scene, c.params)
-            if not _in_bbox(gxy, scene.product_footprint):
+            if not xy_in_bbox(gxy, scene.product_footprint):
                 continue  # grasp point must land on the object
         if edge[1] in (SkillState.OVER_CARTON, SkillState.PLACED):
             pxy = place_point_xy(skill, scene, c.params)
-            if not _in_bbox(pxy, scene.carton_opening):
+            if not xy_in_bbox(pxy, scene.carton_opening):
                 continue  # place point must land in the carton
             if scene.occupied_regions and _would_collide(pxy, scene.product_footprint,
                                                           scene.occupied_regions):
@@ -107,19 +107,9 @@ def rank_candidates(cands: list[Candidate], skill: SkillProgram, scene: SceneSta
     return sorted(cands, key=lambda c: c.score, reverse=True)
 
 
-def _in_bbox(xy, bbox) -> bool:
-    x0, y0, x1, y1 = bbox
-    return bool(x0 <= xy[0] <= x1 and y0 <= xy[1] <= y1)
-
-
 def _would_collide(place_xy, product_footprint, occupied, clearance: float = 0.005) -> bool:
     """Would the product's footprint, placed at place_xy, overlap an occupied region?"""
     hx = (product_footprint[2] - product_footprint[0]) / 2 + clearance
     hy = (product_footprint[3] - product_footprint[1]) / 2 + clearance
-    px0, py0, px1, py1 = place_xy[0] - hx, place_xy[1] - hy, place_xy[0] + hx, place_xy[1] + hy
-    for o in occupied:
-        w = min(px1, o[2]) - max(px0, o[0])
-        h = min(py1, o[3]) - max(py0, o[1])
-        if w > 0 and h > 0:
-            return True
-    return False
+    pred = (place_xy[0] - hx, place_xy[1] - hy, place_xy[0] + hx, place_xy[1] + hy)
+    return any(bbox_overlap_area(pred, o) > 0.0 for o in occupied)
