@@ -1,0 +1,6 @@
+{
+  "sku": "acme-sauce-box",
+  "image": {"w": 1280, "h": 720},
+  "scale_m_per_px": 0.0006,
+  "product": {"kind": "box", "bbox_px": [560, 300, 677, 400], "height_m": 0.06}
+}

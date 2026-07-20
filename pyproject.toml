@@ -11,6 +11,7 @@ dependencies = ["numpy>=1.24"]
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
+physics = ["mujoco>=3.0"]
 
 [project.scripts]
 morrow = "morrow.cli:main"
