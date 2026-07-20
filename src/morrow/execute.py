@@ -36,6 +36,7 @@ class RunResult:
     steps: int
     flagged: bool  # did the cell park-and-flag for a human
     timeline: list = field(default_factory=list)
+    grasp_attempts: list = field(default_factory=list)  # {grasp params, sealed} per try
 
 
 def _actuate(edge, robot) -> None:
@@ -61,7 +62,8 @@ def _recover(action: str, robot) -> None:
     # reobserve_and_regenerate, stop_replan_transport, reobserve_escalate: just re-perceive
 
 
-def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=None) -> RunResult:
+def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=None,
+              journal=None) -> RunResult:
     skill.validate()
     current = SkillState.READY
     recoveries = 0
@@ -70,6 +72,7 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
     steps = 0
     edge_rounds: dict = {}
     timeline: list = []
+    grasp_attempts: list = []
 
     def emit(ev: dict) -> None:
         timeline.append(ev)
@@ -97,7 +100,14 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
             robot.follow(instantiate_edge(skill, edge, scene, robot, c.params))
             _actuate(edge, robot)
             scene = perceiver.observe()
-            if check(tr.success, scene, robot):
+            ok = check(tr.success, scene, robot)
+            if edge[1] is SkillState.GRASPED:
+                grasp_attempts.append({
+                    "grasp_yaw": round(float(c.params["grasp_yaw"]), 4),
+                    "grasp_offset_noise": [round(float(v), 4) for v in c.params["grasp_offset_noise"]],
+                    "sealed": bool(ok),
+                })
+            if ok:
                 emit({"edge": f"{current.value}->{target.value}", "outcome": "ok",
                       "attempts": attempts, "candidate": c.id, "round": rnd})
                 current = target
@@ -124,7 +134,7 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
 
     success = current is SkillState.VERIFIED
     flagged = getattr(getattr(robot, "world", None), "flagged", False)
-    return RunResult(
+    result = RunResult(
         sku_id=skill.sku_id,
         success=success,
         final_state=current.value,
@@ -135,4 +145,9 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
         steps=steps,
         flagged=bool(flagged),
         timeline=timeline,
+        grasp_attempts=grasp_attempts,
     )
+    if journal is not None:
+        from .journal import record_from_result
+        journal.append(record_from_result(result, skill, seed))
+    return result

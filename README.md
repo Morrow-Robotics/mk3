@@ -65,7 +65,10 @@ python -m pip install -e '.[dev]'
 morrow onboard box            # compile a skill and print its state machine
 morrow run pouch --seed 3     # run one randomized packing cycle, print the timeline
 morrow eval --n 100           # the frozen benchmark
+morrow eval --stress --log e.jsonl   # harder worlds; persist every episode
+morrow save box skill.json    # onboard and write the skill to JSON
 morrow demo                   # localhost dashboard at http://127.0.0.1:8000
+morrow demo --shot demo.html  # render the dashboard to a file, no server
 pytest                        # the suite
 ```
 
@@ -93,11 +96,15 @@ src/morrow/
   motion.py      instantiate one FSM edge into world waypoints from the current scene
   candidates.py  deterministic seeded candidates, fail-closed gates, ranking
   execute.py     run_skill: the state machine + bounded, from-current-state recovery
+  conditions.py  serializable success conditions (grasp = hardware, place = vision)
+  serialize.py   SkillProgram <-> JSON (content-addressed, no callables)
+  journal.py     deterministic episode log — the data flywheel
   robot.py       Robot boundary (grasp verified by hardware signal)
   perceive.py    Perceiver boundary
   pipeline.py    the investor sequence, assembled
   cli.py         `morrow`
   sim/           analytic tabletop world implementing the boundaries
+  bench/         physical-bench adapter skeletons (Robot/Perceiver/Recorder) + BENCH.md
   eval/          frozen benchmark, metrics, open-loop replay baseline
   dashboard/     dependency-free localhost results page (DeepMind-ish)
 tests/
@@ -109,8 +116,8 @@ tests/
   `Perceiver` boundary is ready for it.
 - **Bench robot adapter** — LeRobot / industrial arm behind `Robot`, plus the
   suction end-effector and vacuum sensor that make grasp verification real.
-- **A learned grasp-success ranker** — the ranking is analytic on purpose; the
-  episode log is the data it would train on. Add it when logged trials justify
-  it, not before.
+- **A learned grasp-success ranker** — the ranking is analytic on purpose. The
+  episode log (`journal.py`) now captures the exact training data (grasp params
+  + sealed/miss per attempt); add the ranker when logged trials justify it.
 - **Anything past packing** — kitting, multi-object, mobile bases. Same FSM,
   later.

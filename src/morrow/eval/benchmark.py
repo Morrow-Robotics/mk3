@@ -25,7 +25,7 @@ KINDS = ("box", "cylinder", "pouch")
 
 
 def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int = 2,
-                  stress_mode: bool = False) -> dict:
+                  stress_mode: bool = False, journal=None) -> dict:
     build = stress if stress_mode else randomize
     report = {"n": n, "seed_base": seed_base, "stress": stress_mode, "kinds": {}}
     for kind in kinds:
@@ -39,7 +39,7 @@ def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int
         results, baseline_ok = [], 0
         for i in range(n):
             w = build(kind, np.random.RandomState(seed_base + i))
-            results.append(run_skill(skill, SimRobot(w), SimPerceiver(w), seed=i))
+            results.append(run_skill(skill, SimRobot(w), SimPerceiver(w), seed=i, journal=journal))
             wb = build(kind, np.random.RandomState(seed_base + i))
             baseline_ok += int(run_fixed_replay(trace, skill, wb))
 

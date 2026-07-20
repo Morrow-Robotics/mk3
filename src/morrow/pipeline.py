@@ -14,6 +14,7 @@ import numpy as np
 
 from .eval.benchmark import run_benchmark
 from .execute import RunResult, run_skill
+from .journal import EpisodeLog, summarize_log
 from .skill import EDGES, SkillProgram
 from .sim.scenarios import forced_failure_world, onboard, randomize
 from .sim.sim_perceive import SimPerceiver
@@ -56,6 +57,13 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
     w2 = randomize(second, np.random.RandomState(777))
     second_run = _run_record(run_skill(skill2, SimRobot(w2), SimPerceiver(w2), seed=7))
 
+    # data flywheel: log every run's grasp attempts, then summarize
+    journal = EpisodeLog()
+    for i in range(30):
+        w = randomize(primary, np.random.RandomState(900 + i))
+        run_skill(skill, SimRobot(w), SimPerceiver(w), seed=i, journal=journal)
+    flywheel = summarize_log(journal.records)
+
     return {
         "primary_graph": skill_graph(skill),
         "runs": runs,
@@ -64,4 +72,5 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
         "second_run": second_run,
         "benchmark": run_benchmark(n=benchmark_n),
         "benchmark_stress": run_benchmark(n=benchmark_n, stress_mode=True),
+        "flywheel": flywheel,
     }

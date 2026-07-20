@@ -191,6 +191,19 @@ function render(){
     s.appendChild(bench(D.benchmark_stress));
   }
   root.appendChild(s);
+
+  // data flywheel
+  if(D.flywheel){
+    s=el('section');
+    s.appendChild(el('div','eyebrow','6 \\u00b7 Data flywheel'));
+    s.appendChild(el('h2','Every attempt is logged \\u2014 the training set for a grasp ranker'));
+    s.appendChild(el('p','lead','Deterministic episode log (no wall-clock): grasp parameters and sealed/miss on every try. A learned grasp-success ranker consumes exactly this; today the ranking is analytic.'));
+    const f=D.flywheel; const m=el('div','metrics');
+    m.appendChild(metric(f.episodes,'episodes logged'));
+    m.appendChild(metric(f.grasp_attempts,'grasp attempts captured','blue'));
+    m.appendChild(metric(pct(f.grasp_seal_rate),'grasp seal rate','good'));
+    const c=el('div','card'); c.appendChild(m); s.appendChild(c); root.appendChild(s);
+  }
 }
 render();
 """

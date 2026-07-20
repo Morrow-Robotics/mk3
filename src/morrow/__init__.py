@@ -11,6 +11,7 @@ boundary knows which it is talking to.
 
 from .compile import compile_skill
 from .execute import RunResult, run_skill
+from .journal import EpisodeLog, read_log, summarize_log
 from .perceive import Perceiver
 from .robot import Robot
 from .scene import SceneState
@@ -34,4 +35,7 @@ __all__ = [
     "skill_from_json",
     "save_skill",
     "load_skill",
+    "EpisodeLog",
+    "read_log",
+    "summarize_log",
 ]

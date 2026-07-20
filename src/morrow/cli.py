@@ -34,7 +34,13 @@ def _run(args) -> None:
 
 def _eval(args) -> None:
     from .eval import format_report, run_benchmark
-    print(format_report(run_benchmark(n=args.n, stress_mode=args.stress)))
+    journal = None
+    if args.log:
+        from .journal import EpisodeLog
+        journal = EpisodeLog(args.log)
+    print(format_report(run_benchmark(n=args.n, stress_mode=args.stress, journal=journal)))
+    if journal is not None:
+        print(f"logged {len(journal)} episodes -> {args.log}")
 
 
 def _save(args) -> None:
@@ -46,6 +52,14 @@ def _save(args) -> None:
 
 
 def _demo(args) -> None:
+    if args.shot:
+        from .dashboard import render_page, runtime_info
+        from .pipeline import investor_sequence
+        html = render_page(investor_sequence(benchmark_n=args.n), runtime_info())
+        with open(args.shot, "w") as f:
+            f.write(html)
+        print(f"wrote dashboard -> {args.shot} ({len(html)} bytes)")
+        return
     from .dashboard import serve
     serve(host=args.host, port=args.port, benchmark_n=args.n)
 
@@ -67,6 +81,7 @@ def main(argv=None) -> None:
     e = sub.add_parser("eval", help="run the frozen benchmark")
     e.add_argument("--n", type=int, default=100)
     e.add_argument("--stress", action="store_true", help="rotated carton + low-confidence frames")
+    e.add_argument("--log", help="append per-run episode records to this JSONL file")
     e.set_defaults(fn=_eval)
 
     sv = sub.add_parser("save", help="onboard a skill and write it to JSON")
@@ -74,10 +89,11 @@ def main(argv=None) -> None:
     sv.add_argument("path")
     sv.set_defaults(fn=_save)
 
-    d = sub.add_parser("demo", help="serve the localhost dashboard")
+    d = sub.add_parser("demo", help="serve the localhost dashboard (or --shot to a file)")
     d.add_argument("--host", default="127.0.0.1")
     d.add_argument("--port", type=int, default=8000)
     d.add_argument("--n", type=int, default=60)
+    d.add_argument("--shot", help="render the dashboard to this HTML file and exit")
     d.set_defaults(fn=_demo)
 
     args = p.parse_args(argv)
