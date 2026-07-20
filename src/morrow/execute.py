@@ -65,7 +65,7 @@ def _recover(action: str, robot) -> None:
 
 
 def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42,
-              journal=None, ranker=None) -> RunResult:
+              journal=None, ranker=None, extra: dict | None = None) -> RunResult:
     skill.validate()
     current = SkillState.READY
     recoveries = 0
@@ -162,5 +162,8 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42,
     )
     if journal is not None:
         from .journal import record_from_result
-        journal.append(record_from_result(result, skill, seed))
+        rec = record_from_result(result, skill, seed)
+        if extra:
+            rec = {**rec, **extra}  # e.g. sequence context: which item/slot
+        journal.append(rec)
     return result

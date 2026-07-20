@@ -155,7 +155,9 @@ def run_pack_sequence(items: list[PackItem], skills: dict, seed: int = 0,
         shifted = with_place_slot(skill, slot)
         perceiver = SimPerceiver(world, target_descriptor=skill.object_descriptor)
         r = run_skill(shifted, SimRobot(world), perceiver, seed=seed * 100 + k,
-                      journal=journal, ranker=ranker)
+                      journal=journal, ranker=ranker,
+                      extra={"in_sequence": True, "seq_item": k,
+                             "seq_slot": [float(slot[0]), float(slot[1])], "kind": it.kind})
         results.append(ItemResult(it.sku, it.kind, tuple(slot), r.success,
                                   r.final_state, r.failure_reason))
         if r.success:

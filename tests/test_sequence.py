@@ -73,3 +73,20 @@ def test_halt_policy_stops_at_first_failure():
 def test_invalid_policy_raises():
     with pytest.raises(ValueError):
         run_pack_sequence([], {}, policy="nonsense")
+
+
+def test_sequence_runs_are_tagged_in_the_journal():
+    from morrow import EpisodeLog
+    log = EpisodeLog()
+    demo_pack_sequence(seed=0, journal=log)
+    assert len(log) == 3
+    assert all(r.get("in_sequence") for r in log.records)
+    assert [r["seq_item"] for r in log.records] == [0, 1, 2]
+    assert {r["kind"] for r in log.records} == {"box", "cylinder", "pouch"}
+    # single-product runs stay untagged
+    from morrow import run_skill
+    from morrow.sim import make_world, onboard, SimPerceiver, SimRobot
+    plain = EpisodeLog()
+    w = make_world("box")
+    run_skill(onboard("box", "box"), SimRobot(w), SimPerceiver(w), seed=0, journal=plain)
+    assert "in_sequence" not in plain.records[0]
