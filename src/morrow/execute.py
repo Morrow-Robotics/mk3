@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 
 from .candidates import apply_feasibility, generate_candidates, rank_candidates
 from .conditions import check
+from .geometry import wrap_angle
 from .motion import instantiate_edge
 from .skill import SkillProgram, SkillState, next_state
 
@@ -35,6 +36,7 @@ class RunResult:
     attempts: int  # total transition attempts
     steps: int
     flagged: bool  # did the cell park-and-flag for a human
+    failure_reason: str | None = None  # "EDGE:condition" that exhausted, if flagged
     timeline: list = field(default_factory=list)
     grasp_attempts: list = field(default_factory=list)  # {grasp params, sealed} per try
 
@@ -63,7 +65,7 @@ def _recover(action: str, robot) -> None:
 
 
 def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=None,
-              journal=None) -> RunResult:
+              journal=None, ranker=None) -> RunResult:
     skill.validate()
     current = SkillState.READY
     recoveries = 0
@@ -73,6 +75,7 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
     edge_rounds: dict = {}
     timeline: list = []
     grasp_attempts: list = []
+    failure_reason = None
 
     def emit(ev: dict) -> None:
         timeline.append(ev)
@@ -89,7 +92,7 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
         scene = perceiver.observe()
         cands = generate_candidates(skill, scene, edge, seed, rnd, n=20)
         cands = apply_feasibility(cands, skill, scene, robot, edge)
-        ranked = rank_candidates(cands, skill, scene, edge)[:MAX_CANDIDATES]
+        ranked = rank_candidates(cands, skill, scene, edge, ranker=ranker)[:MAX_CANDIDATES]
 
         advanced = False
         attempts = 0
@@ -102,8 +105,10 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
             scene = perceiver.observe()
             ok = check(tr.success, scene, robot)
             if edge[1] is SkillState.GRASPED:
+                rel = wrap_angle(float(c.params["grasp_yaw"]) - scene.product_yaw_candidates[0])
                 grasp_attempts.append({
                     "grasp_yaw": round(float(c.params["grasp_yaw"]), 4),
+                    "grasp_yaw_rel": round(float(rel), 4),  # yaw vs detected axis: the learnable feature
                     "grasp_offset_noise": [round(float(v), 4) for v in c.params["grasp_offset_noise"]],
                     "sealed": bool(ok),
                 })
@@ -125,9 +130,10 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
                   "attempts": attempts, "action": tr.recovery["action"], "round": rnd})
             if edge_rounds[edge] > MAX_EDGE_RETRIES:
                 current = SkillState.FAILED
+                failure_reason = f"{edge[0].value}->{edge[1].value}:{tr.success['name']}"
                 robot.park_and_flag()
                 emit({"edge": f"{edge[0].value}->{edge[1].value}", "outcome": "failed",
-                      "attempts": attempts})
+                      "attempts": attempts, "reason": failure_reason})
                 break
             _recover(tr.recovery["action"], robot)
             current = tr.recovery["next_state"]
@@ -144,6 +150,7 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
         attempts=attempts_total,
         steps=steps,
         flagged=bool(flagged),
+        failure_reason=failure_reason,
         timeline=timeline,
         grasp_attempts=grasp_attempts,
     )

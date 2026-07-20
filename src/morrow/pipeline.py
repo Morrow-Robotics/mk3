@@ -13,6 +13,7 @@ from __future__ import annotations
 import numpy as np
 
 from .eval.benchmark import run_benchmark
+from .eval.ranker_eval import compare_ranker
 from .execute import RunResult, run_skill
 from .journal import EpisodeLog, summarize_log
 from .skill import EDGES, SkillProgram
@@ -63,6 +64,7 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
         w = randomize(primary, np.random.RandomState(900 + i))
         run_skill(skill, SimRobot(w), SimPerceiver(w), seed=i, journal=journal)
     flywheel = summarize_log(journal.records)
+    ranker = compare_ranker(primary, n=50, n_train=50, seal_yaw_pref=0.0)
 
     return {
         "primary_graph": skill_graph(skill),
@@ -73,4 +75,5 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
         "benchmark": run_benchmark(n=benchmark_n),
         "benchmark_stress": run_benchmark(n=benchmark_n, stress_mode=True),
         "flywheel": flywheel,
+        "ranker": ranker,
     }

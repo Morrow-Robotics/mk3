@@ -75,6 +75,14 @@ def stress(kind: str, rng: np.random.RandomState) -> World:
     return randomize(kind, rng, carton_yaw=True, perception_dropout=0.2, occlusion=0.15)
 
 
+def structured(kind: str, rng: np.random.RandomState, seal_yaw_pref: float = 0.0) -> World:
+    """A SKU whose seal reliability depends on grasp yaw — the signal the analytic
+    score can't see and the learned ranker discovers from the log."""
+    world = randomize(kind, rng)
+    world.product.seal_yaw_pref = seal_yaw_pref
+    return world
+
+
 def onboard(kind: str, sku_id: str, n_demos: int = 2):
     """Record demos on a canonical world and compile a SkillProgram."""
     traces = []

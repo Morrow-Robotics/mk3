@@ -47,3 +47,10 @@ def test_grasp_verified_by_hardware_not_vision():
     r = run_skill(skill, SimRobot(w), SimPerceiver(w), seed=0)
     assert not r.success and r.flagged
     assert r.final_state == "FAILED"
+
+
+def test_failure_reason_names_the_stuck_edge():
+    skill = onboard("box", "box")
+    w = make_world("box", force_fail_seals=999)  # never seals
+    r = run_skill(skill, SimRobot(w), SimPerceiver(w), seed=0)
+    assert r.failure_reason == "APPROACHED->GRASPED:grasped"

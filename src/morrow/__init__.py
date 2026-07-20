@@ -13,6 +13,7 @@ from .compile import compile_skill
 from .execute import RunResult, run_skill
 from .journal import EpisodeLog, read_log, summarize_log
 from .perceive import Perceiver
+from .ranker import GraspRanker
 from .robot import Robot
 from .scene import SceneState
 from .serialize import load_skill, save_skill, skill_from_json, skill_to_json
@@ -38,4 +39,5 @@ __all__ = [
     "EpisodeLog",
     "read_log",
     "summarize_log",
+    "GraspRanker",
 ]

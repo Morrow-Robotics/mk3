@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from ..geometry import Transform, frame, translation
+from ..geometry import Transform, frame, translation, wrap_angle, yaw_of
 
 
 def rect_aabb(cx: float, cy: float, hx: float, hy: float, yaw: float) -> np.ndarray:
@@ -35,6 +35,11 @@ class Product:
     cx: float
     cy: float
     yaw: float
+    # Object-frame preferred grasp yaw. When set, a top-down grasp seals
+    # reliably only when the tool yaw aligns with (product.yaw + this); the
+    # 180-flipped grasp — geometrically identical — seals worse. This is the
+    # signal the analytic ranker structurally ignores and the learned one finds.
+    seal_yaw_pref: float | None = None
 
     def footprint(self) -> np.ndarray:
         return rect_aabb(self.cx, self.cy, self.hx, self.hy, self.yaw)
@@ -62,6 +67,7 @@ class World:
 
     GRASP_Z_TOL = 0.02  # how close to the top the tool must be to seal
     SAFE_Z = 0.35  # travel/park height above the table
+    YAW_SLIP_PENALTY = 0.7  # extra slip when the grasp yaw is fully misaligned
 
     def __init__(self, product: Product, carton: Carton, table_height: float = 0.0,
                  workspace=(-0.4, 0.4, -0.4, 0.4), force_fail_seals: int = 0,
@@ -118,7 +124,12 @@ class World:
         dxy = float(np.linalg.norm(ee[:2] - np.array([self.product.cx, self.product.cy])))
         dz = abs(ee[2] - self.product_top_z())
         if dxy <= self.product.grasp_radius and dz <= self.GRASP_Z_TOL:
-            if self.rng is not None and self.rng.random() < self.slip_prob:
+            eff_slip = self.slip_prob
+            pref = self.product.seal_yaw_pref
+            if pref is not None:
+                align = float(np.cos(wrap_angle(yaw_of(self.ee_pose) - self.product.yaw - pref)))
+                eff_slip = min(0.95, self.slip_prob + self.YAW_SLIP_PENALTY * (1.0 - align) / 2.0)
+            if self.rng is not None and eff_slip > 0.0 and self.rng.random() < eff_slip:
                 return False  # good geometry, but the film wrinkled and the seal slipped
             self.attached = True
             self.in_carton = False

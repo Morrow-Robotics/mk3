@@ -76,8 +76,12 @@ def apply_feasibility(cands: list[Candidate], skill: SkillProgram, scene: SceneS
     return survivors
 
 
+RANKER_WEIGHT = 3.0  # how strongly a learned grasp ranker can reorder candidates
+
+
 def rank_candidates(cands: list[Candidate], skill: SkillProgram, scene: SceneState,
-                    edge) -> list[Candidate]:
+                    edge, ranker=None) -> list[Candidate]:
+    ref_yaw = scene.product_yaw_candidates[0] if scene.product_yaw_candidates else 0.0
     for c in cands:
         noise = float(np.linalg.norm(c.params["grasp_offset_noise"]) +
                       np.linalg.norm(c.params["place_offset_noise"]))
@@ -85,6 +89,10 @@ def rank_candidates(cands: list[Candidate], skill: SkillProgram, scene: SceneSta
         if edge[1] is SkillState.GRASPED:
             gxy = grasp_point_xy(skill, scene, c.params)
             score += -1.0 * float(np.linalg.norm(gxy - scene.product_centroid[:2]))  # grasp_quality
+            if ranker is not None:  # opt-in: add the learned seal-probability term
+                from .ranker import blend_score
+                score += RANKER_WEIGHT * blend_score(
+                    ranker, c.params["grasp_yaw"], ref_yaw, c.params["grasp_offset_noise"])
         if edge[1] in (SkillState.OVER_CARTON, SkillState.PLACED):
             cc = scene.carton_frame[:2, 3]
             pxy = place_point_xy(skill, scene, c.params)

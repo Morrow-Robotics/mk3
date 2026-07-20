@@ -57,6 +57,16 @@ rotated, carton jittered, 12% suction-slip noise):
 taught-once, exactly like a fixed industrial cell. It collapses the moment the
 product moves — which is the whole reason perception + a verified skill matter.
 
+**The data flywheel.** Every run logs each grasp attempt (params + sealed/miss)
+to a deterministic episode log (`journal.py`). A small opt-in ranker
+(`ranker.py`) trains on that log. On a SKU whose seal reliability depends on
+grasp yaw — a signal the analytic score structurally ignores — the learned
+ranker lifts first-attempt success from ~52% to ~90% by picking the grasp that
+actually seals. The analytic path stays the default; the ranker only adds a term
+and never overrides the fail-closed gates. On the frictionless standard set it
+is parity — the lift shows up exactly where grasp quality has structure, as it
+does on real deformables.
+
 ## Usage
 
 ```bash
@@ -99,6 +109,7 @@ src/morrow/
   conditions.py  serializable success conditions (grasp = hardware, place = vision)
   serialize.py   SkillProgram <-> JSON (content-addressed, no callables)
   journal.py     deterministic episode log — the data flywheel
+  ranker.py      learned grasp-success ranker (opt-in, trained on the log)
   robot.py       Robot boundary (grasp verified by hardware signal)
   perceive.py    Perceiver boundary
   pipeline.py    the investor sequence, assembled
@@ -116,8 +127,5 @@ tests/
   `Perceiver` boundary is ready for it.
 - **Bench robot adapter** — LeRobot / industrial arm behind `Robot`, plus the
   suction end-effector and vacuum sensor that make grasp verification real.
-- **A learned grasp-success ranker** — the ranking is analytic on purpose. The
-  episode log (`journal.py`) now captures the exact training data (grasp params
-  + sealed/miss per attempt); add the ranker when logged trials justify it.
-- **Anything past packing** — kitting, multi-object, mobile bases. Same FSM,
-  later.
+- **Anything past packing** — kitting, mobile bases. Same FSM, later. (Staged
+  multi-object *selection* is here; multi-object *packing sequences* are not.)

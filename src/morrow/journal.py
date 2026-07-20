@@ -45,6 +45,7 @@ def record_from_result(result, skill, seed: int) -> dict:
         "recoveries": int(result.recoveries),
         "attempts": int(result.attempts),
         "flagged": bool(result.flagged),
+        "failure_reason": result.failure_reason,
         "grasp_attempts": list(result.grasp_attempts),
     }
 

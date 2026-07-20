@@ -202,7 +202,17 @@ function render(){
     m.appendChild(metric(f.episodes,'episodes logged'));
     m.appendChild(metric(f.grasp_attempts,'grasp attempts captured','blue'));
     m.appendChild(metric(pct(f.grasp_seal_rate),'grasp seal rate','good'));
-    const c=el('div','card'); c.appendChild(m); s.appendChild(c); root.appendChild(s);
+    const c=el('div','card'); c.appendChild(m); s.appendChild(c);
+    if(D.ranker){
+      const rk=D.ranker;
+      s.appendChild(el('p','lead','Payoff: on a SKU whose seal depends on grasp yaw \\u2014 a signal the analytic score ignores \\u2014 a ranker trained on this log lifts first-attempt success. Analytic stays the default; the ranker only adds a term.'));
+      const m2=el('div','metrics');
+      m2.appendChild(metric(pct(rk.analytic_first_attempt),'analytic first-attempt'));
+      m2.appendChild(metric(pct(rk.ranker_first_attempt),'+ learned ranker','good'));
+      m2.appendChild(metric('+'+pct(rk.ranker_first_attempt-rk.analytic_first_attempt),'lift','blue'));
+      const c2=el('div','card'); c2.appendChild(m2); s.appendChild(c2);
+    }
+    root.appendChild(s);
   }
 }
 render();
