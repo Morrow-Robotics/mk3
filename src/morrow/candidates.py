@@ -18,7 +18,7 @@ import numpy as np
 
 from .motion import grasp_point_xy, instantiate_edge, place_point_xy
 from .scene import SceneState
-from .skill import SkillProgram, SkillState
+from .skill import STATE_ORDER, SkillProgram, SkillState
 
 
 @dataclass
@@ -30,8 +30,11 @@ class Candidate:
 
 
 def _seed(seed: int, edge, rnd: int) -> int:
-    a, b = edge
-    return (int(seed) * 1_000_003 + hash((a.value, b.value)) % 9973 * 131 + rnd * 17) % (2**31 - 1)
+    # Edge key is the from-state's position (unique per edge) — a STABLE hash.
+    # (Python salts str/tuple hashing per process, which would break
+    # cross-process reproducibility on yaw-dependent scenes.)
+    edge_idx = STATE_ORDER.index(edge[0])
+    return (int(seed) * 1_000_003 + edge_idx * 131 + rnd * 17) % (2**31 - 1)
 
 
 def generate_candidates(skill: SkillProgram, scene: SceneState, edge, seed: int,

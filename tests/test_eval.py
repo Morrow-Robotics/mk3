@@ -7,6 +7,15 @@ def test_benchmark_is_reproducible():
     assert a == b
 
 
+def test_candidate_seed_is_stable_not_salted():
+    # A fixed golden value guarantees _seed never regresses to Python's
+    # per-process salted string/tuple hashing (which breaks cross-process runs).
+    from morrow.candidates import _seed
+    from morrow.skill import SkillState
+    assert _seed(42, (SkillState.READY, SkillState.APPROACHED), 0) == 42_000_126
+    assert _seed(42, (SkillState.APPROACHED, SkillState.GRASPED), 0) == 42_000_257
+
+
 def test_morrow_beats_open_loop_replay():
     rep = run_benchmark(n=40)
     for kind, r in rep["kinds"].items():

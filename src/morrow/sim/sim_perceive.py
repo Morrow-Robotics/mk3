@@ -21,17 +21,27 @@ from ..scene import SceneState
 from .world import World
 
 
+AMBIGUITY_MARGIN = 0.5  # min score gap to trust the pick; below it, flag not guess
+
+
+def _match_score(d: dict, descriptor: dict) -> float:
+    tgt_size = np.array(descriptor.get("approx_size", [0.0, 0.0]))
+    s = 1.0 if d["kind"] == descriptor.get("kind") else 0.0
+    return s - 10.0 * float(np.linalg.norm(np.array(d["size"]) - tgt_size))
+
+
+def select_target_ranked(detections: list[dict], descriptor: dict) -> tuple[int, float]:
+    """Return (best index, margin over the runner-up). A small margin means two
+    detections match the descriptor about equally — the pick is not trustworthy."""
+    scores = [_match_score(d, descriptor) for d in detections]
+    order = sorted(range(len(scores)), key=lambda i: scores[i], reverse=True)
+    margin = (scores[order[0]] - scores[order[1]]) if len(scores) > 1 else 1e9
+    return order[0], float(margin)
+
+
 def select_target(detections: list[dict], descriptor: dict) -> int:
     """Pick the detection best matching the active SKU descriptor (kind + size)."""
-    tgt_size = np.array(descriptor.get("approx_size", [0.0, 0.0]))
-    tgt_kind = descriptor.get("kind")
-    best_i, best = 0, -1e9
-    for i, d in enumerate(detections):
-        score = (1.0 if d["kind"] == tgt_kind else 0.0)
-        score -= 10.0 * float(np.linalg.norm(np.array(d["size"]) - tgt_size))
-        if score > best:
-            best, best_i = score, i
-    return best_i
+    return select_target_ranked(detections, descriptor)[0]
 
 
 class SimPerceiver:
@@ -69,9 +79,9 @@ class SimPerceiver:
 
         detections = [self._detect(w.product, True)] + [self._detect(d, False) for d in w.distractors]
         if self.target_descriptor is not None and w.distractors:
-            idx = select_target(detections, self.target_descriptor)
+            idx, margin = select_target_ranked(detections, self.target_descriptor)
         else:
-            idx = 0
+            idx, margin = 0, 1e9
         sel = detections[idx]
         prod = sel["product"]
         centroid = sel["centroid"].copy()
@@ -109,5 +119,6 @@ class SimPerceiver:
             perception_confidence=confidence,
             timestamp=time.time(),
             uncertainty={"selected_kind": sel["kind"], "n_candidates": len(detections),
-                         "occluded": occluded},
+                         "occluded": occluded, "selection_margin": round(margin, 4),
+                         "ambiguous": bool(margin < AMBIGUITY_MARGIN)},
         )

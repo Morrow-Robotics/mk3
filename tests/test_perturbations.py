@@ -1,7 +1,8 @@
 import numpy as np
 
 from morrow import run_skill
-from morrow.sim import onboard, randomize, staged, stress, SimPerceiver, SimRobot
+from morrow.sim import (onboard, randomize, staged, staged_ambiguous, stress,
+                        SimPerceiver, SimRobot)
 
 
 def test_transfers_under_carton_rotation():
@@ -78,3 +79,22 @@ def test_staged_scenes_transfer():
         p = SimPerceiver(w, target_descriptor=skill.object_descriptor)
         ok += run_skill(skill, SimRobot(w), p, seed=i).success
     assert ok == 15
+
+
+def test_ambiguous_selection_flags_instead_of_guessing():
+    skill = onboard("box", "box")
+    w = staged_ambiguous("box", np.random.RandomState(0))  # two near-identical boxes
+    p = SimPerceiver(w, target_descriptor=skill.object_descriptor)
+    assert p.observe().uncertainty["ambiguous"] is True
+    r = run_skill(skill, SimRobot(w), p, seed=0)
+    assert r.final_state == "FAILED" and r.failure_reason == "SELECTION:ambiguous"
+    assert r.flagged and not r.grasp_attempts  # it never grasped the wrong one
+
+
+def test_distinct_distractors_are_not_ambiguous():
+    skill = onboard("box", "box")
+    w = staged("box", np.random.RandomState(0))  # box + cylinder + pouch
+    p = SimPerceiver(w, target_descriptor=skill.object_descriptor)
+    sc = p.observe()
+    assert sc.uncertainty["ambiguous"] is False
+    assert run_skill(skill, SimRobot(w), p, seed=0).success

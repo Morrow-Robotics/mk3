@@ -190,6 +190,14 @@ function render(){
     s.appendChild(el('p','lead','Under stress \\u2014 rotated carton, intermittent low-confidence frames, and occlusion noise. Final success holds; more of the work is autonomous recovery.'));
     s.appendChild(bench(D.benchmark_stress));
   }
+  if(D.stuck_breakdown){
+    s.appendChild(el('p','lead','Where the box stress batch actually gets stuck \\u2014 the rare human-flags, by edge:'));
+    const ul=el('ul','tl');
+    Object.entries(D.stuck_breakdown).forEach(([k,v])=>{
+      const li=el('li'); li.textContent=v+' \\u00d7 '+k; ul.appendChild(li);
+    });
+    const cc=el('div','card'); cc.appendChild(ul); s.appendChild(cc);
+  }
   root.appendChild(s);
 
   // data flywheel
@@ -211,6 +219,11 @@ function render(){
       m2.appendChild(metric(pct(rk.ranker_first_attempt),'+ learned ranker','good'));
       m2.appendChild(metric('+'+pct(rk.ranker_first_attempt-rk.analytic_first_attempt),'lift','blue'));
       const c2=el('div','card'); c2.appendChild(m2); s.appendChild(c2);
+      const ex=rk.example;
+      if(ex){
+        const yl=v=>(Math.abs(v)<1.0?'aligned':'flipped');
+        s.appendChild(el('p','lead','One run (seed '+ex.seed+'): the analytic score grasped '+yl(ex.analytic.grasp_yaw_rel)+' \\u2192 '+(ex.analytic.sealed?'sealed':'missed')+'; the learned ranker grasped '+yl(ex.ranker.grasp_yaw_rel)+' \\u2192 '+(ex.ranker.sealed?'sealed':'missed')+'. Same scene, better pick.'));
+      }
     }
     root.appendChild(s);
   }

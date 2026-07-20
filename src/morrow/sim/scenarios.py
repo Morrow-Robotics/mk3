@@ -70,6 +70,14 @@ def staged(kind: str, rng: np.random.RandomState, distractor_kinds=None) -> Worl
     return world
 
 
+def staged_ambiguous(kind: str, rng: np.random.RandomState) -> World:
+    """Two near-identical same-kind products — selection cannot disambiguate,
+    so the cell should flag rather than guess which one to pack."""
+    world = randomize(kind, rng)
+    world.distractors.append(make_product(kind, 0.0, 0.28, rng.uniform(-np.pi, np.pi)))
+    return world
+
+
 def stress(kind: str, rng: np.random.RandomState) -> World:
     """A harder world: rotated carton, low-confidence frames, and occlusion noise."""
     return randomize(kind, rng, carton_yaw=True, perception_dropout=0.2, occlusion=0.15)

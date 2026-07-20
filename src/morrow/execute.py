@@ -82,6 +82,14 @@ def run_skill(skill: SkillProgram, robot, perceiver, seed: int = 42, on_event=No
         if on_event is not None:
             on_event(ev)
 
+    # Selection gate: if perception can't tell the target from a distractor,
+    # flag for a human rather than grasp the wrong SKU.
+    if perceiver.observe().uncertainty.get("ambiguous"):
+        robot.park_and_flag()
+        current = SkillState.FAILED
+        failure_reason = "SELECTION:ambiguous"
+        emit({"edge": "SELECTION", "outcome": "failed", "reason": failure_reason})
+
     while current not in (SkillState.VERIFIED, SkillState.FAILED) and steps < MAX_STEPS:
         steps += 1
         target = next_state(current)

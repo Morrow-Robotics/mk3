@@ -2,13 +2,14 @@
 
 from .record import record_demo
 from .scenarios import (forced_failure_world, make_product, make_world, onboard,
-                        randomize, staged, stress, structured)
-from .sim_perceive import SimPerceiver, select_target
+                        randomize, staged, staged_ambiguous, stress, structured)
+from .sim_perceive import SimPerceiver, select_target, select_target_ranked
 from .sim_robot import SimRobot
 from .world import Carton, Product, World
 
 __all__ = [
     "World", "Product", "Carton", "SimRobot", "SimPerceiver", "select_target",
-    "record_demo", "onboard", "make_world", "make_product", "randomize", "stress",
-    "staged", "structured", "forced_failure_world",
+    "select_target_ranked", "record_demo", "onboard", "make_world", "make_product",
+    "randomize", "stress", "staged", "staged_ambiguous", "structured",
+    "forced_failure_world",
 ]

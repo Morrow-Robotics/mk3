@@ -47,3 +47,25 @@ def compare_ranker(kind: str = "box", n: int = 60, n_train: int = 60,
         "analytic_first_attempt": first_attempt_rate(False),
         "ranker_first_attempt": first_attempt_rate(True),
     }
+
+
+def ranker_demo_pick(kind: str = "box", seed: int = 6001, n_train: int = 60,
+                     seal_yaw_pref: float = 0.0) -> dict:
+    """One structured scene, analytic vs ranker: which grasp yaw each picked and
+    whether it sealed. Makes the flywheel legible on a single run."""
+    skill = onboard(kind, kind)
+    log = EpisodeLog()
+    for i in range(n_train):
+        w = structured(kind, np.random.RandomState(5000 + i), seal_yaw_pref)
+        run_skill(skill, SimRobot(w), SimPerceiver(w), seed=i, journal=log)
+    ranker = GraspRanker.fit(log.records)
+
+    def first_grasp(use_ranker: bool) -> dict:
+        w = structured(kind, np.random.RandomState(seed), seal_yaw_pref)
+        r = run_skill(skill, SimRobot(w), SimPerceiver(w), seed=seed,
+                      ranker=ranker if use_ranker else None)
+        g = r.grasp_attempts[0] if r.grasp_attempts else {}
+        return {"grasp_yaw_rel": g.get("grasp_yaw_rel"), "sealed": g.get("sealed"),
+                "first_attempt": r.first_attempt_success}
+
+    return {"seed": seed, "analytic": first_grasp(False), "ranker": first_grasp(True)}

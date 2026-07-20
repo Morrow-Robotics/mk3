@@ -12,8 +12,9 @@ from __future__ import annotations
 
 import numpy as np
 
+from .eval.analysis import failure_breakdown
 from .eval.benchmark import run_benchmark
-from .eval.ranker_eval import compare_ranker
+from .eval.ranker_eval import compare_ranker, ranker_demo_pick
 from .execute import RunResult, run_skill
 from .journal import EpisodeLog, summarize_log
 from .skill import EDGES, SkillProgram
@@ -65,6 +66,7 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
         run_skill(skill, SimRobot(w), SimPerceiver(w), seed=i, journal=journal)
     flywheel = summarize_log(journal.records)
     ranker = compare_ranker(primary, n=50, n_train=50, seal_yaw_pref=0.0)
+    ranker["example"] = ranker_demo_pick(primary, seed=6003, n_train=50, seal_yaw_pref=0.0)
 
     return {
         "primary_graph": skill_graph(skill),
@@ -74,6 +76,7 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
         "second_run": second_run,
         "benchmark": run_benchmark(n=benchmark_n),
         "benchmark_stress": run_benchmark(n=benchmark_n, stress_mode=True),
+        "stuck_breakdown": failure_breakdown(primary, n=benchmark_n),
         "flywheel": flywheel,
         "ranker": ranker,
     }
