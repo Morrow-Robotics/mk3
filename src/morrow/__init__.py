@@ -16,6 +16,8 @@ from .perceive import Perceiver
 from .ranker import GraspRanker
 from .robot import Robot
 from .scene import SceneState
+from .sequence import (PackItem, SequenceResult, demo_pack_sequence,
+                       run_pack_sequence, with_place_slot)
 from .serialize import load_skill, save_skill, skill_from_json, skill_to_json
 from .skill import EDGES, STATE_ORDER, SkillProgram, SkillState
 from .trace import DemonstrationTrace
@@ -40,4 +42,9 @@ __all__ = [
     "read_log",
     "summarize_log",
     "GraspRanker",
+    "PackItem",
+    "SequenceResult",
+    "run_pack_sequence",
+    "demo_pack_sequence",
+    "with_place_slot",
 ]

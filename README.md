@@ -76,6 +76,9 @@ morrow onboard box            # compile a skill and print its state machine
 morrow run pouch --seed 3     # run one randomized packing cycle, print the timeline
 morrow eval --n 100           # the frozen benchmark
 morrow eval --stress --log e.jsonl   # harder worlds; persist every episode
+morrow eval --breakdown       # tally where the stress batch gets stuck, by edge
+morrow ranker box             # A/B the learned grasp ranker on a structured SKU
+morrow pack                   # pack one of each SKU into a single carton (high-mix)
 morrow save box skill.json    # onboard and write the skill to JSON
 morrow demo                   # localhost dashboard at http://127.0.0.1:8000
 morrow demo --shot demo.html  # render the dashboard to a file, no server
@@ -112,6 +115,7 @@ src/morrow/
   ranker.py      learned grasp-success ranker (opt-in, trained on the log)
   robot.py       Robot boundary (grasp verified by hardware signal)
   perceive.py    Perceiver boundary
+  sequence.py    multi-object packing — several SKUs into one carton, in order
   pipeline.py    the investor sequence, assembled
   cli.py         `morrow`
   sim/           analytic tabletop world implementing the boundaries
@@ -127,5 +131,7 @@ tests/
   `Perceiver` boundary is ready for it.
 - **Bench robot adapter** — LeRobot / industrial arm behind `Robot`, plus the
   suction end-effector and vacuum sensor that make grasp verification real.
-- **Anything past packing** — kitting, mobile bases. Same FSM, later. (Staged
-  multi-object *selection* is here; multi-object *packing sequences* are not.)
+- **Anything past packing** — kitting, mobile bases. Same FSM, later.
+  (High-mix *packing sequences* — several SKUs into one carton in order — are
+  here via `sequence.py`; the sim does not yet model item-on-item collision, so
+  slots are chosen disjoint.)

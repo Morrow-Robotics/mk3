@@ -17,6 +17,7 @@ from .eval.benchmark import run_benchmark
 from .eval.ranker_eval import compare_ranker, ranker_demo_pick
 from .execute import RunResult, run_skill
 from .journal import EpisodeLog, summarize_log
+from .sequence import demo_pack_sequence
 from .skill import EDGES, SkillProgram
 from .sim.scenarios import forced_failure_world, onboard, randomize
 from .sim.sim_perceive import SimPerceiver
@@ -68,6 +69,11 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
     ranker = compare_ranker(primary, n=50, n_train=50, seal_yaw_pref=0.0)
     ranker["example"] = ranker_demo_pick(primary, seed=6003, n_train=50, seal_yaw_pref=0.0)
 
+    seq = demo_pack_sequence(seed=0)
+    sequence = {"packed": seq.packed, "total": seq.total, "success": seq.success,
+                "items": [{"sku": x.sku, "kind": x.kind, "slot": list(x.slot),
+                           "final_state": x.final_state} for x in seq.results]}
+
     return {
         "primary_graph": skill_graph(skill),
         "runs": runs,
@@ -79,4 +85,5 @@ def investor_sequence(primary: str = "box", second: str = "cylinder",
         "stuck_breakdown": failure_breakdown(primary, n=benchmark_n),
         "flywheel": flywheel,
         "ranker": ranker,
+        "sequence": sequence,
     }

@@ -39,8 +39,31 @@ def _eval(args) -> None:
         from .journal import EpisodeLog
         journal = EpisodeLog(args.log)
     print(format_report(run_benchmark(n=args.n, stress_mode=args.stress, journal=journal)))
+    if args.breakdown:
+        from .eval import failure_breakdown
+        print("where the box stress batch gets stuck:")
+        for reason, count in failure_breakdown("box", n=args.n).items():
+            print(f"  {count:4d}  {reason}")
     if journal is not None:
         print(f"logged {len(journal)} episodes -> {args.log}")
+
+
+def _ranker(args) -> None:
+    from .eval import compare_ranker
+    r = compare_ranker(args.kind, n=args.n, n_train=args.n)
+    print(f"[{args.kind}] structured SKU (seal depends on grasp yaw)")
+    print(f"  analytic first-attempt : {r['analytic_first_attempt']*100:5.1f}%")
+    print(f"  + learned ranker       : {r['ranker_first_attempt']*100:5.1f}%  "
+          f"(+{(r['ranker_first_attempt']-r['analytic_first_attempt'])*100:.1f})")
+
+
+def _pack(args) -> None:
+    from .sequence import demo_pack_sequence
+    r = demo_pack_sequence(seed=args.seed)
+    print(f"packed {r.packed}/{r.total} into one carton  (success={r.success})")
+    for it in r.results:
+        tail = "" if it.failure_reason is None else f"  [{it.failure_reason}]"
+        print(f"  {it.sku:9s} {it.kind:9s} slot {it.slot} -> {it.final_state}{tail}")
 
 
 def _save(args) -> None:
@@ -81,8 +104,18 @@ def main(argv=None) -> None:
     e = sub.add_parser("eval", help="run the frozen benchmark")
     e.add_argument("--n", type=int, default=100)
     e.add_argument("--stress", action="store_true", help="rotated carton + low-confidence frames")
+    e.add_argument("--breakdown", action="store_true", help="tally where the stress batch gets stuck")
     e.add_argument("--log", help="append per-run episode records to this JSONL file")
     e.set_defaults(fn=_eval)
+
+    rk = sub.add_parser("ranker", help="A/B the learned grasp ranker on a structured SKU")
+    rk.add_argument("kind", choices=["box", "cylinder", "pouch"])
+    rk.add_argument("--n", type=int, default=80)
+    rk.set_defaults(fn=_ranker)
+
+    pk = sub.add_parser("pack", help="pack one of each SKU into a single carton (high-mix)")
+    pk.add_argument("--seed", type=int, default=0)
+    pk.set_defaults(fn=_pack)
 
     sv = sub.add_parser("save", help="onboard a skill and write it to JSON")
     sv.add_argument("kind", choices=["box", "cylinder", "pouch"])

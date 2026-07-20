@@ -17,8 +17,11 @@ from .sim_robot import SimRobot
 from .world import Carton, Product, World
 
 
-def _carton() -> Carton:
+def default_carton() -> Carton:
     return Carton(cx=0.20, cy=0.0, yaw=0.0, hx=0.12, hy=0.12, wall_z=0.12, floor_z=0.0)
+
+
+_carton = default_carton  # internal alias
 
 
 def make_product(kind: str, cx: float, cy: float, yaw: float) -> Product:

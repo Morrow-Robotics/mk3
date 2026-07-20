@@ -163,6 +163,22 @@ function render(){
   s.appendChild(chain(g2));
   root.appendChild(s);
 
+  // high-mix packing sequence
+  if(D.sequence){
+    s=el('section');
+    s.appendChild(el('div','eyebrow','4b \\u00b7 High-mix'));
+    s.appendChild(el('h2','Three different SKUs into one carton, in order'));
+    s.appendChild(el('p','lead','Each item is selected among the staged products by its descriptor and placed in its own slot \\u2014 no new state machine, just the single-product skill run once per item.'));
+    const runs=el('div','runs');
+    D.sequence.items.forEach(it=>{
+      const cls='run'+(it.final_state==='VERIFIED'?' ok':'');
+      runs.appendChild(el('div',cls, it.kind+' \\u2192 slot ['+it.slot.map(v=>v.toFixed(2)).join(', ')+'] \\u00b7 '+it.final_state));
+    });
+    s.appendChild(runs);
+    s.appendChild(el('p','lead','packed '+D.sequence.packed+'/'+D.sequence.total+' into one carton.'));
+    root.appendChild(s);
+  }
+
   // benchmark
   s=el('section');
   s.appendChild(el('div','eyebrow','5 \\u00b7 Evaluation'));
