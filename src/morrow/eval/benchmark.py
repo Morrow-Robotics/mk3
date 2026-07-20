@@ -15,7 +15,7 @@ import numpy as np
 
 from ..execute import run_skill
 from ..sim.record import record_demo
-from ..sim.scenarios import make_world, onboard, randomize
+from ..sim.scenarios import make_world, onboard, randomize, stress
 from ..sim.sim_perceive import SimPerceiver
 from ..sim.sim_robot import SimRobot
 from .baseline import run_fixed_replay
@@ -24,8 +24,10 @@ from .metrics import summarize
 KINDS = ("box", "cylinder", "pouch")
 
 
-def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int = 2) -> dict:
-    report = {"n": n, "seed_base": seed_base, "kinds": {}}
+def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int = 2,
+                  stress_mode: bool = False) -> dict:
+    build = stress if stress_mode else randomize
+    report = {"n": n, "seed_base": seed_base, "stress": stress_mode, "kinds": {}}
     for kind in kinds:
         t0 = time.perf_counter()
         skill = onboard(kind, kind, n_demos=n_demos)
@@ -36,9 +38,9 @@ def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int
 
         results, baseline_ok = [], 0
         for i in range(n):
-            w = randomize(kind, np.random.RandomState(seed_base + i))
+            w = build(kind, np.random.RandomState(seed_base + i))
             results.append(run_skill(skill, SimRobot(w), SimPerceiver(w), seed=i))
-            wb = randomize(kind, np.random.RandomState(seed_base + i))
+            wb = build(kind, np.random.RandomState(seed_base + i))
             baseline_ok += int(run_fixed_replay(trace, skill, wb))
 
         report["kinds"][kind] = {
@@ -51,7 +53,8 @@ def run_benchmark(n: int = 100, seed_base: int = 1000, kinds=KINDS, n_demos: int
 
 
 def format_report(report: dict) -> str:
-    lines = [f"benchmark  n={report['n']}  seed_base={report['seed_base']}", ""]
+    mode = "stress" if report.get("stress") else "standard"
+    lines = [f"benchmark ({mode})  n={report['n']}  seed_base={report['seed_base']}", ""]
     for kind, r in report["kinds"].items():
         m = r["morrow"]
         lines.append(f"[{kind}]  skill {r['skill_hash']}  onboarded in "

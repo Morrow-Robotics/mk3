@@ -139,7 +139,12 @@ function render(){
     const cls = r.first_attempt ? 'run fa' : 'run ok';
     runs.appendChild(el('div',cls,'run '+(i+1)+': '+r.final_state+(r.first_attempt?' \\u00b7 first try':' \\u00b7 +'+r.retries+' retry')));
   });
-  s.appendChild(runs); root.appendChild(s);
+  s.appendChild(runs);
+  if(D.runs.length){
+    s.appendChild(el('p','lead','Trace of run 1 \\u2014 every transition re-perceives before it acts:'));
+    s.appendChild(timeline(D.runs[0]));
+  }
+  root.appendChild(s);
 
   // forced failure + recovery
   s=el('section');

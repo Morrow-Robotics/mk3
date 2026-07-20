@@ -44,6 +44,10 @@ class SimPerceiver:
             yaws = [0.0]  # rotationally symmetric; any grasp yaw is fine
         else:
             yaws = [wrap_angle(p.yaw), wrap_angle(p.yaw + np.pi)]  # 180 ambiguity
+        confidence = 0.98
+        if w.perception_dropout_prob > 0.0 and w.rng is not None:
+            if w.rng.random() < w.perception_dropout_prob:
+                confidence = 0.4  # a low-confidence frame; the gate should veto it
         return SceneState(
             product_mask=mask,
             product_depth=depth,
@@ -55,6 +59,6 @@ class SimPerceiver:
             gripper_pose=w.ee_pose.copy(),
             gripper_signal=w.signal(),
             holding=w.attached,
-            perception_confidence=0.98,
+            perception_confidence=confidence,
             timestamp=time.time(),
         )

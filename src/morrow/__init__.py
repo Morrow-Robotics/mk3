@@ -14,6 +14,7 @@ from .execute import RunResult, run_skill
 from .perceive import Perceiver
 from .robot import Robot
 from .scene import SceneState
+from .serialize import load_skill, save_skill, skill_from_json, skill_to_json
 from .skill import EDGES, STATE_ORDER, SkillProgram, SkillState
 from .trace import DemonstrationTrace
 
@@ -29,4 +30,8 @@ __all__ = [
     "RunResult",
     "Robot",
     "Perceiver",
+    "skill_to_json",
+    "skill_from_json",
+    "save_skill",
+    "load_skill",
 ]

@@ -34,7 +34,15 @@ def _run(args) -> None:
 
 def _eval(args) -> None:
     from .eval import format_report, run_benchmark
-    print(format_report(run_benchmark(n=args.n)))
+    print(format_report(run_benchmark(n=args.n, stress_mode=args.stress)))
+
+
+def _save(args) -> None:
+    from .serialize import save_skill
+    from .sim import onboard
+    skill = onboard(args.kind, args.kind)
+    save_skill(skill, args.path)
+    print(f"saved skill {skill.sku_id} (hash {skill.version_hash}) -> {args.path}")
 
 
 def _demo(args) -> None:
@@ -58,7 +66,13 @@ def main(argv=None) -> None:
 
     e = sub.add_parser("eval", help="run the frozen benchmark")
     e.add_argument("--n", type=int, default=100)
+    e.add_argument("--stress", action="store_true", help="rotated carton + low-confidence frames")
     e.set_defaults(fn=_eval)
+
+    sv = sub.add_parser("save", help="onboard a skill and write it to JSON")
+    sv.add_argument("kind", choices=["box", "cylinder", "pouch"])
+    sv.add_argument("path")
+    sv.set_defaults(fn=_save)
 
     d = sub.add_parser("demo", help="serve the localhost dashboard")
     d.add_argument("--host", default="127.0.0.1")

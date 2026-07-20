@@ -43,15 +43,24 @@ def forced_failure_world(kind: str = "box") -> World:
 
 
 def randomize(kind: str, rng: np.random.RandomState, jitter_carton: bool = True,
-              slip_prob: float = 0.12) -> World:
+              slip_prob: float = 0.12, carton_yaw: bool = False,
+              perception_dropout: float = 0.0) -> World:
     cx = rng.uniform(-0.25, -0.05)
     cy = rng.uniform(-0.15, 0.15)
     yaw = rng.uniform(-np.pi, np.pi)
     world = make_world(kind, cx, cy, yaw, slip_prob=slip_prob, rng=rng)
+    world.perception_dropout_prob = perception_dropout
     if jitter_carton:
         world.carton.cx = 0.20 + rng.uniform(-0.04, 0.04)
         world.carton.cy = 0.0 + rng.uniform(-0.04, 0.04)
+    if carton_yaw:
+        world.carton.yaw = rng.uniform(-0.4, 0.4)
     return world
+
+
+def stress(kind: str, rng: np.random.RandomState) -> World:
+    """A harder world: rotated carton + intermittent low-confidence perception."""
+    return randomize(kind, rng, carton_yaw=True, perception_dropout=0.2)
 
 
 def onboard(kind: str, sku_id: str, n_demos: int = 2):
