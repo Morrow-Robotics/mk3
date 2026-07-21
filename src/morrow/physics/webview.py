@@ -145,9 +145,7 @@ function renderPack(stage, title, r, tag){
 function packs(){
   const stage=document.getElementById('stage');
   if(D.arm){Object.entries(D.arm.kinds).forEach(([kind,r])=>
-    renderPack(stage, kind+'  ·  SO-101 5-DOF arm', r, 'SO-101 model · IK'));}
-  Object.entries(D.showcase.kinds).forEach(([kind,r])=>
-    renderPack(stage, kind+'  ·  floating parallel-jaw (same skill, fast)', r));
+    renderPack(stage, kind+'  ·  SO-101 5-DOF model', r, 'SO-101 model · IK'));}
 }
 function marker(){
   const cv=document.getElementById('mcanvas'), ctx=cv.getContext('2d');
@@ -201,14 +199,13 @@ function marker(){
     const ann={sku:'marked',image:{w:cv.width,h:cv.height},scale_m_per_px:parseFloat(scaleIn.value),
       product:{kind:kindSel.value,bbox_px:prod.map(v=>Math.round(v)),height_m:parseFloat(heightIn.value)}};
     if(cart)ann.carton={bbox_px:cart.map(v=>Math.round(v))};
-    if(kindSel.value!=='pouch')ann.target='arm';  // box/cylinder pack on the SO-101 model
-    st.textContent='building skill + running '+(ann.target==='arm'?'SO-101':'floating')+' MuJoCo physics …'; rv.style.display='none';
+    st.textContent='building skill + running the SO-101 model in MuJoCo …'; rv.style.display='none';
     try{
       const resp=await fetch('/annotate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(ann)});
       const j=await resp.json();
       if(j.ok){rv.style.display='block';rv.src='data:video/mp4;base64,'+j.mp4_b64;rv.play();
-        st.innerHTML='<b>'+j.final_state+'</b> · '+(j.embodiment==='so101'?'SO-101 model':'floating gripper')+
-          ' · packed in carton: '+(j.inside_carton?'yes':'no')+' · product half-size '+j.size.join(' × ')+' m';}
+        st.innerHTML='<b>'+j.final_state+'</b> · SO-101 model · packed in carton: '+
+          (j.inside_carton?'yes':'no')+' · product half-size '+j.size.join(' × ')+' m';}
       else{st.textContent='✗ '+j.error;}
     }catch(err){st.textContent='request failed: '+err;}
   };
@@ -249,29 +246,13 @@ function watchPanel(){
     card.appendChild(pr);}
   host.appendChild(card);
 }
-function multipackPanel(){
-  if(!D.multipack){return;}
-  const host=document.getElementById('stage'); const mp=D.multipack;
-  const c=el('div','pack real');
-  const h=el('h3',null,mp.n+' boxes → one carton  ·  high-mix pack-out');
-  const b=el('span','realbadge','floating jaw · physics'); h.appendChild(b); c.appendChild(h);
-  const v=document.createElement('video'); v.src='data:video/mp4;base64,'+mp.mp4_b64;
-  v.controls=true; v.loop=true; v.muted=true; v.autoplay=true; v.playsInline=true; c.appendChild(v);
-  const m=el('div','m');
-  m.innerHTML='<span>grasped <b>'+mp.grasped+'/'+mp.n+'</b></span>'+
-    '<span>seated in carton: '+(mp.seated===mp.n?'<b>'+mp.seated+'/'+mp.n+'</b>':'<span class=bad>'+mp.seated+'/'+mp.n+'</span>')+'</span>'+
-    '<span>rectangular boxes — diverse materials are Phase-4</span>';
-  c.appendChild(m); host.appendChild(c);
-}
-slots(); packs(); multipackPanel(); watchPanel(); marker();
+slots(); packs(); watchPanel(); marker();
 """
 
 
-def render_physics_page(showcase: dict, slots: list[dict], runtime: dict,
-                        arm_showcase: dict | None = None, watch: dict | None = None,
-                        multipack: dict | None = None) -> str:
-    data = json.dumps({"showcase": showcase, "slots": slots, "arm": arm_showcase,
-                       "watch": watch, "multipack": multipack})
+def render_physics_page(slots: list[dict], runtime: dict,
+                        arm_showcase: dict | None = None, watch: dict | None = None) -> str:
+    data = json.dumps({"slots": slots, "arm": arm_showcase, "watch": watch})
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>morrow · customer video → LeRobot physics</title><style>{_CSS}</style></head>
@@ -282,11 +263,11 @@ def render_physics_page(showcase: dict, slots: list[dict], runtime: dict,
 <div class="rt">python {runtime['python']} · mujoco {runtime['mujoco']} · {runtime['platform']}</div>
 <div class="note"><b>Honest scope:</b> the customer clips on the left are your drop-in files —
 we do <i>not</i> download them or yet auto-extract a skill from video (that's the hard Phase-3 step).
-The teal-bordered center panels are the <i>SO-101 (MuJoCo Menagerie model, 5-DOF)</i> (MuJoCo Menagerie): an
-orientation-aware IK drives its position actuators tool-down and the parallel jaw grasps by friction —
-grasp is verified from two-finger contact, lift from real height, placement from footprint overlap.
-The plain panels below are the same compiled skill on a fast floating gripper. The SO-101's usable
-top-down reach is small (x≈0.21–0.32 m, |y|&lt;0.10 m), so the cell sits in that envelope.</div>
+The center panels are the <i>SO-101 (MuJoCo Menagerie model, 5-DOF)</i> — the LeRobot arm's real MJCF
+run in MuJoCo, <b>not</b> a physical arm: an orientation-aware IK drives its position actuators tool-down
+and the parallel jaw grasps by friction — grasp is verified from two-finger contact, lift from real
+height, placement from footprint overlap. Its usable top-down reach is small (x≈0.21–0.32 m,
+|y|&lt;0.10 m), so the cell sits in that envelope.</div>
 <div class="grid">
   <div><div class="eyebrow">Customer packing (drop-in)</div><div id="videos"></div></div>
   <div><div class="eyebrow">LeRobot SO-101 physics — arm doing the task</div><div id="stage"></div></div>
@@ -305,8 +286,8 @@ top-down reach is small (x≈0.21–0.32 m, |y|&lt;0.10 m), so the cell sits in 
   <p class="lead">Grab a frame from any clip, drag a <i>rough</i> box over the product (or carton), then
   <b>SAM2 refine</b> to snap it to the real object (runs server-side on the clip — needs weights).
   Set the table scale (metres per pixel) and product height, then build a physics skill and watch the
-  <b>SO-101 model</b> pack it (box/cylinder; pouch falls back to the fast floating gripper). Honest:
-  monocular clips have no metric scale, so you supply m/px — SAM2 gives the pixel geometry, not depth.</p>
+  <b>SO-101 model</b> pack it (box/cylinder). Honest: monocular clips have no metric scale, so you supply
+  m/px — SAM2 gives the pixel geometry, not depth.</p>
   <div class="mrow">
     <input type="file" id="frameFile" accept="image/*">
     <select id="clipSel"></select>
@@ -316,7 +297,7 @@ top-down reach is small (x≈0.21–0.32 m, |y|&lt;0.10 m), so the cell sits in 
   </div>
   <canvas id="mcanvas" class="mcanvas" width="480" height="270"></canvas>
   <div class="mrow">
-    <label>kind <select id="kindSel"><option>box</option><option>cylinder</option><option>pouch</option></select></label>
+    <label>kind <select id="kindSel"><option>box</option><option>cylinder</option></select></label>
     <label>scale m/px <input id="scaleIn" type="number" step="0.0001" value="0.0007" style="width:92px"></label>
     <label>height m <input id="heightIn" type="number" step="0.01" value="0.06" style="width:74px"></label>
     <button class="btn" id="runBtn">build &amp; pack in physics</button>
@@ -331,23 +312,18 @@ analytic sim and to the eventual bench. Cartesian EE waypoints map to a SO-101 m
 
 
 def serve_physics(host: str = "127.0.0.1", port: int = 8001, videos_dir: str = "videos",
-                  kinds=("box", "cylinder", "pouch"), arm_kinds=("box",)) -> None:
-    from .showcase import (build_arm_showcase, build_multipack_showcase, build_showcase,
-                           build_watch_showcase)
+                  arm_kinds=("box",)) -> None:
+    from .showcase import build_arm_showcase, build_watch_showcase
     watch = None
     try:
         print("watching a real clip with SAM2 → SO-101 (skipped if no weights) ...", flush=True)
         watch = build_watch_showcase()
     except Exception as e:  # SAM2 optional / clip-specific — never block the dashboard
         print(f"  watch panel skipped: {e}", flush=True)
-    print("rendering multi-item pack-out (floating jaw, N boxes → carton grid) ...", flush=True)
-    multipack = build_multipack_showcase()
-    print("rendering SO-101 model arm packs (5-DOF IK, slower) ...", flush=True)
+    print("rendering SO-101 model packs (5-DOF IK) ...", flush=True)
     arm_showcase = build_arm_showcase(kinds=arm_kinds)
-    print("rendering fast floating-gripper packs ...", flush=True)
-    showcase = build_showcase(kinds=kinds)
-    page = render_physics_page(showcase, _slots(videos_dir, embed=False),
-                               runtime_info(), arm_showcase, watch, multipack).encode()
+    page = render_physics_page(_slots(videos_dir, embed=False),
+                               runtime_info(), arm_showcase, watch).encode()
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, body, ctype):
@@ -390,20 +366,13 @@ def serve_physics(host: str = "127.0.0.1", port: int = 8001, videos_dir: str = "
 
         def _annotate(self, ann):
             from .showcase import _inside_carton, _mp4_b64
-            if ann.get("target") == "arm":  # pack on the SO-101 model
-                from .watch import pack_annotation_on_arm
-                frames, size, _c, result, world = pack_annotation_on_arm(
-                    ann, seed=int(ann.get("seed", 0)), capture=True)
-                return {"ok": True, "mp4_b64": _mp4_b64(frames), "embodiment": "so101",
-                        "final_state": result.final_state, "success": result.success,
-                        "inside_carton": _inside_carton(world),
-                        "size": [round(v, 3) for v in size]}
-            from .annotate import capture_annotation  # fast floating gripper
-            frames, result, world = capture_annotation(ann, seed=int(ann.get("seed", 0)))
-            return {"ok": True, "mp4_b64": _mp4_b64(frames), "embodiment": "floating",
+            from .watch import pack_annotation_on_arm  # the SO-101 model is the only embodiment
+            frames, size, _c, result, world = pack_annotation_on_arm(
+                ann, seed=int(ann.get("seed", 0)), capture=True)
+            return {"ok": True, "mp4_b64": _mp4_b64(frames), "embodiment": "so101",
                     "final_state": result.final_state, "success": result.success,
                     "inside_carton": _inside_carton(world),
-                    "size": [round(world.hx, 3), round(world.hy, 3), round(world.hz, 3)]}
+                    "size": [round(v, 3) for v in size]}
 
         def do_POST(self):
             if self.path not in ("/annotate", "/segment"):

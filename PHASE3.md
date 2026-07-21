@@ -24,13 +24,13 @@ what a monocular consumer clip cannot give you.
 ## The boundary is the whole trick
 
 `run_skill` doesn't know what's underneath it. The exact same compiled skill runs
-against three embodiments that all implement the `Robot`/`Perceiver` protocols:
+against embodiments that all implement the `Robot`/`Perceiver` protocols:
 
 | Embodiment | Module | Grasp verdict | Notes |
 |---|---|---|---|
 | Analytic sim | `morrow.sim` | seal geometry | numpy only, the frozen benchmark |
-| Floating parallel-jaw | `physics/world.py` (`MjWorld`) | two-finger **contact** | MuJoCo, fast, mocap-welded gripper |
 | **SO-101 (MuJoCo model)** | `physics/arm.py` (`ArmWorld`) | two-finger **contact** | MuJoCo Menagerie, 5-DOF + IK |
+| Physical SO-101 (Phase 4) | `bench/SO101BenchRobot` | contact / grip force | scaffold — not yet wired to hardware |
 
 No suction anywhere — the first arms are the standard LeRobot parallel jaw, so
 grasp is verified from hardware contact between the product and *both* fingers,
@@ -109,20 +109,17 @@ morrow annotate examples/annotation_box.json   # a marked-up clip → physics pa
 
 Drop customer clips into `./videos/` (git-ignored). The dashboard shows, left to
 right: the clips, the **SO-101 model** packing (teal hero), the watch→SAM2→pack
-panel with the activity sparkline, the fast floating-gripper packs, and an
-**interactive marker** — grab any clip frame, drag a rough box, hit *SAM2 refine*,
-and pack it on the SO-101 model.
+panel with the activity sparkline, and an **interactive marker** — grab any clip
+frame, drag a rough box, hit *SAM2 refine*, and pack it on the SO-101 model.
 
 ## Layout
 
 ```
 src/morrow/physics/
-  world.py  mj_robot.py  mj_perceive.py  record.py   # floating parallel-jaw cell
   arm.py                                             # the SO-101 model (IK + friction grasp)
   watch.py                                           # SAM2 segment → annotation → SO-101 pack
   pattern.py                                         # cv2 packing-activity profile
   film.py  showcase.py  webview.py                   # render + the `morrow cell` dashboard
-  annotate.py                                        # operator-marked clip → physics skill
 tests/  test_physics.py  test_watch.py  test_pattern.py   # all optional-dep guarded
 ```
 

@@ -11,22 +11,6 @@ import subprocess
 import numpy as np
 
 from ..execute import run_skill
-from .mj_perceive import MjPerceiver
-from .mj_robot import MjRobot
-from .record import onboard_mj
-from .world import MjWorld
-
-
-def capture_pack(kind: str = "box", seed: int = 0, px: float = -0.15, py: float = 0.0,
-                 pyaw: float = 0.0, camera: str = "top", height: int = 240, width: int = 320):
-    skill = onboard_mj(kind, kind)
-    world = MjWorld(kind, px=px, py=py, pyaw=pyaw)
-    per = MjPerceiver(world)
-    per.render(camera, height, width)  # warm the renderer
-    frames: list = []
-    robot = MjRobot(world, on_frame=lambda: frames.append(per.render(camera, height, width)))
-    result = run_skill(skill, robot, per, seed=seed)
-    return frames, result, world
 
 
 def capture_arm_pack(kind: str = "box", seed: int = 0, px: float = 0.27, py: float = -0.06,

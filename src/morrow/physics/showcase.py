@@ -1,8 +1,8 @@
-"""Build the physics showcase: render a real MuJoCo pack per SKU, with the FSM
-timeline and a physical-placement check, ready for the dashboard to display.
+"""Build the physics showcase: render the SO-101 model doing the pack (+ the SAM2
+watch pipeline), ready for the dashboard to display.
 
-Each entry carries a self-contained base64 mp4 of the parallel-jaw LeRobot arm
-doing the task, so the page works served or as a single --shot file.
+Each entry carries a self-contained base64 mp4 of the SO-101 model doing the task,
+so the page works served or as a single --shot file.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ import base64
 import os
 import tempfile
 
-from .film import capture_arm_pack, capture_pack, encode_mp4
+from .film import capture_arm_pack, encode_mp4
 
 
 def _inside_carton(world) -> bool:
@@ -45,31 +45,14 @@ def _entry(frames, result, world) -> dict:
     }
 
 
-def build_showcase(kinds=("box", "cylinder", "pouch"), seed: int = 0, camera: str = "side") -> dict:
-    out = {"kinds": {}}
-    for kind in kinds:
-        frames, result, world = capture_pack(kind, seed=seed, camera=camera)
-        out["kinds"][kind] = _entry(frames, result, world)
-    return out
-
-
 def build_arm_showcase(kinds=("box",), seed: int = 0, camera: str = "cell") -> dict:
-    """Render the SO-101 model (5-DOF) executing the same compiled skill —
-    orientation-aware IK + friction grasp, not a floating mocap gripper."""
+    """Render the SO-101 model (5-DOF) executing the compiled skill —
+    orientation-aware IK + parallel-jaw friction grasp."""
     out = {"kinds": {}}
     for kind in kinds:
         frames, result, world = capture_arm_pack(kind, seed=seed, camera=camera)
         out["kinds"][kind] = _entry(frames, result, world)
     return out
-
-
-def build_multipack_showcase(n: int = 4) -> dict:
-    """Floating parallel-jaw gripper packing N boxes into one carton grid — the
-    honest VISUAL multi-item pack in real physics (the SO-101 model can't place a
-    full grid reliably; this embodiment can)."""
-    from .multipack import capture_multi_pack
-    frames, grasped, seated = capture_multi_pack(n=n)
-    return {"mp4_b64": _mp4_b64(frames), "n": n, "grasped": grasped, "seated": seated}
 
 
 def _png_b64(path: str) -> str:

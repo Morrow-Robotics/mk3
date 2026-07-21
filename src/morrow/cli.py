@@ -61,22 +61,19 @@ def _cell(args) -> None:
     try:
         from .physics.webview import (find_clips, render_physics_page, runtime_info,
                                       serve_physics, _slots)
-        from .physics.showcase import (build_arm_showcase, build_multipack_showcase,
-                                        build_showcase, build_watch_showcase)
+        from .physics.showcase import build_arm_showcase, build_watch_showcase
     except ImportError:
         print("physics cell needs MuJoCo: pip install -e '.[physics]'")
         return
     if args.shot:
         arm = None if args.no_arm else build_arm_showcase()
-        multipack = build_multipack_showcase()
         watch = None
         if not args.no_arm:
             try:
                 watch = build_watch_showcase()
             except Exception as e:
                 print(f"watch panel skipped: {e}")
-        html = render_physics_page(build_showcase(), _slots(args.videos, embed=True),
-                                   runtime_info(), arm, watch, multipack)
+        html = render_physics_page(_slots(args.videos, embed=True), runtime_info(), arm, watch)
         with open(args.shot, "w") as f:
             f.write(html)
         print(f"wrote physics dashboard -> {args.shot} ({len(html)} bytes); "
@@ -88,22 +85,22 @@ def _cell(args) -> None:
 def _annotate(args) -> None:
     import json
     try:
-        from .physics.annotate import capture_annotation, run_annotation
+        from .physics.watch import pack_annotation_on_arm
     except ImportError:
         print("annotate needs MuJoCo: pip install -e '.[physics]'")
         return
     with open(args.json) as f:
         ann = json.load(f)
+    capture = bool(args.shot)
+    frames, size, _c, result, world = pack_annotation_on_arm(ann, seed=args.seed, capture=capture)
     if args.shot:
         from .physics.film import encode_mp4
-        frames, result, world = capture_annotation(ann, seed=args.seed)
         encode_mp4(frames, args.shot, fps=18)
-        print(f"annotation -> skill; physics run {result.final_state}; "
+        print(f"annotation -> skill; SO-101 model run {result.final_state}; "
               f"wrote {args.shot} ({len(frames)} frames)")
         return
-    skill, world, result = run_annotation(ann, seed=args.seed)
-    size = tuple(round(v, 3) for v in (world.hx, world.hy, world.hz))
-    print(f"annotation -> skill {skill.version_hash}  (kind {world.kind}, half-size {size} m)")
+    size = tuple(round(v, 3) for v in size)
+    print(f"annotation -> SO-101 model pack (half-size {size} m)")
     print(f"physics run: {result.final_state}  success={result.success}")
 
 

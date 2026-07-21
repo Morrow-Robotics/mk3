@@ -1,24 +1,17 @@
-"""MuJoCo physics backend: accurate contact/grasp/collision for the packing task.
+"""MuJoCo physics backend: the LeRobot SO-101 model + the SAM2 watch pipeline.
 
 Implements the same Robot/Perceiver boundaries as the analytic sim, so the FSM
-(`run_skill`) drives real physics unchanged. Models the standard LeRobot
-parallel-jaw gripper (no suction). Requires `mujoco` (optional dependency).
+(`run_skill`) drives real physics unchanged. The embodiment is the SO-101 model
+(MuJoCo Menagerie), a standard parallel jaw — no suction, and no floating gripper.
+Requires `mujoco` (optional dependency); the watch pipeline also needs SAM2.
 """
 
-from .annotate import build_skill_from_annotation, capture_annotation, run_annotation
 from .arm import ArmPerceiver, ArmRobot, ArmWorld, onboard_arm, record_arm_demo
-from .mj_perceive import MjPerceiver
-from .mj_robot import MjRobot
-from .multipack import MultiCell, capture_multi_pack, pack_boxes
 from .pattern import carton_activity, packing_profile
-from .record import onboard_mj, record_mj_demo
-from .watch import (have_sam2, render_overlay, scene_to_annotation, segment_scene,
-                    watch_and_pack_arm)
-from .world import MjWorld
+from .watch import (have_sam2, pack_annotation_on_arm, render_overlay, scene_to_annotation,
+                    segment_scene, watch_and_pack_arm)
 
-__all__ = ["MjWorld", "MjRobot", "MjPerceiver", "record_mj_demo", "onboard_mj",
-           "build_skill_from_annotation", "run_annotation", "capture_annotation",
-           "ArmWorld", "ArmRobot", "ArmPerceiver", "record_arm_demo", "onboard_arm",
+__all__ = ["ArmWorld", "ArmRobot", "ArmPerceiver", "record_arm_demo", "onboard_arm",
            "have_sam2", "segment_scene", "render_overlay", "scene_to_annotation",
-           "watch_and_pack_arm", "packing_profile", "carton_activity",
-           "pack_boxes", "capture_multi_pack", "MultiCell"]
+           "watch_and_pack_arm", "pack_annotation_on_arm", "packing_profile",
+           "carton_activity"]
