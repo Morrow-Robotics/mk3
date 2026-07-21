@@ -249,13 +249,29 @@ function watchPanel(){
     card.appendChild(pr);}
   host.appendChild(card);
 }
-slots(); packs(); watchPanel(); marker();
+function multipackPanel(){
+  if(!D.multipack){return;}
+  const host=document.getElementById('stage'); const mp=D.multipack;
+  const c=el('div','pack real');
+  const h=el('h3',null,mp.n+' boxes → one carton  ·  high-mix pack-out');
+  const b=el('span','realbadge','floating jaw · physics'); h.appendChild(b); c.appendChild(h);
+  const v=document.createElement('video'); v.src='data:video/mp4;base64,'+mp.mp4_b64;
+  v.controls=true; v.loop=true; v.muted=true; v.autoplay=true; v.playsInline=true; c.appendChild(v);
+  const m=el('div','m');
+  m.innerHTML='<span>grasped <b>'+mp.grasped+'/'+mp.n+'</b></span>'+
+    '<span>seated in carton: '+(mp.seated===mp.n?'<b>'+mp.seated+'/'+mp.n+'</b>':'<span class=bad>'+mp.seated+'/'+mp.n+'</span>')+'</span>'+
+    '<span>rectangular boxes — diverse materials are Phase-4</span>';
+  c.appendChild(m); host.appendChild(c);
+}
+slots(); packs(); multipackPanel(); watchPanel(); marker();
 """
 
 
 def render_physics_page(showcase: dict, slots: list[dict], runtime: dict,
-                        arm_showcase: dict | None = None, watch: dict | None = None) -> str:
-    data = json.dumps({"showcase": showcase, "slots": slots, "arm": arm_showcase, "watch": watch})
+                        arm_showcase: dict | None = None, watch: dict | None = None,
+                        multipack: dict | None = None) -> str:
+    data = json.dumps({"showcase": showcase, "slots": slots, "arm": arm_showcase,
+                       "watch": watch, "multipack": multipack})
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>morrow · customer video → LeRobot physics</title><style>{_CSS}</style></head>
@@ -316,19 +332,22 @@ analytic sim and to the eventual bench. Cartesian EE waypoints map to a SO-101 m
 
 def serve_physics(host: str = "127.0.0.1", port: int = 8001, videos_dir: str = "videos",
                   kinds=("box", "cylinder", "pouch"), arm_kinds=("box",)) -> None:
-    from .showcase import build_arm_showcase, build_showcase, build_watch_showcase
+    from .showcase import (build_arm_showcase, build_multipack_showcase, build_showcase,
+                           build_watch_showcase)
     watch = None
     try:
         print("watching a real clip with SAM2 → SO-101 (skipped if no weights) ...", flush=True)
         watch = build_watch_showcase()
     except Exception as e:  # SAM2 optional / clip-specific — never block the dashboard
         print(f"  watch panel skipped: {e}", flush=True)
+    print("rendering multi-item pack-out (floating jaw, N boxes → carton grid) ...", flush=True)
+    multipack = build_multipack_showcase()
     print("rendering SO-101 model arm packs (5-DOF IK, slower) ...", flush=True)
     arm_showcase = build_arm_showcase(kinds=arm_kinds)
     print("rendering fast floating-gripper packs ...", flush=True)
     showcase = build_showcase(kinds=kinds)
     page = render_physics_page(showcase, _slots(videos_dir, embed=False),
-                               runtime_info(), arm_showcase, watch).encode()
+                               runtime_info(), arm_showcase, watch, multipack).encode()
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, body, ctype):

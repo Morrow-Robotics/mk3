@@ -63,6 +63,15 @@ def build_arm_showcase(kinds=("box",), seed: int = 0, camera: str = "cell") -> d
     return out
 
 
+def build_multipack_showcase(n: int = 4) -> dict:
+    """Floating parallel-jaw gripper packing N boxes into one carton grid — the
+    honest VISUAL multi-item pack in real physics (the SO-101 model can't place a
+    full grid reliably; this embodiment can)."""
+    from .multipack import capture_multi_pack
+    frames, grasped, seated = capture_multi_pack(n=n)
+    return {"mp4_b64": _mp4_b64(frames), "n": n, "grasped": grasped, "seated": seated}
+
+
 def _png_b64(path: str) -> str:
     with open(path, "rb") as f:
         return base64.b64encode(f.read()).decode()
