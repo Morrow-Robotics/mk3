@@ -60,6 +60,32 @@ def _png_b64(path: str) -> str:
         return base64.b64encode(f.read()).decode()
 
 
+def build_video_showcases() -> list | None:
+    """For each customer clip: SAM2 reconstructs the carton + objects, the SO-101
+    model packs them, and we return one panel per clip (overlay + pack mp4 + counts).
+    None when SAM2 weights are absent."""
+    from .reconstruct import VIDEO_SCENES, reconstruct_and_pack, render_overlay
+    from .watch import have_sam2
+    if not have_sam2():
+        return None
+    out = []
+    for cfg in VIDEO_SCENES:
+        if not os.path.isfile(cfg["clip"]):
+            continue
+        r = reconstruct_and_pack(cfg)
+        fd, opath = tempfile.mkstemp(suffix=".png")
+        os.close(fd)
+        try:
+            render_overlay(cfg, r["dets"], opath)
+            overlay = _png_b64(opath)
+        finally:
+            os.unlink(opath)
+        out.append({"clip": os.path.basename(cfg["clip"]),
+                    "overlay_png_b64": overlay, "pack_mp4_b64": _mp4_b64(r["frames"]),
+                    "n": r["n"], "seated": r["seated"]})
+    return out or None
+
+
 # Operator-seeded config for the showcased clip (fractional click-boxes + scale).
 WATCH_CLIP = dict(clip="videos/pexels_7581335.mp4", frame_idx=18,
                   carton_box_frac=(0.16, 0.30, 0.80, 0.92),

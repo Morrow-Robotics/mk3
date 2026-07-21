@@ -211,48 +211,35 @@ function marker(){
   };
   redraw();
 }
-function watchPanel(){
-  if(!D.watch){return;}
-  const host=document.getElementById('watchstage'); const w=D.watch;
-  const card=el('div','pack real');
-  card.appendChild(el('h3',null,'watched: '+w.clip+'  ·  frame '+w.frame_idx));
-  const row=el('div','wrow');
-  const fig1=el('div','wfig'); const img=document.createElement('img');
-  img.src='data:image/png;base64,'+w.overlay_png_b64; img.className='wimg';
-  fig1.appendChild(img); fig1.appendChild(el('div','cap','SAM2 masks on the real clip — carton (amber) + product (green)'));
-  const fig2=el('div','wfig'); const v=document.createElement('video');
-  v.src='data:video/mp4;base64,'+w.pack_mp4_b64; v.controls=true; v.loop=true; v.muted=true; v.autoplay=true; v.playsInline=true; v.className='wimg';
-  fig2.appendChild(v); fig2.appendChild(el('div','cap','SO-101 packs the '+w.kind+' it inferred, in MuJoCo'));
-  row.appendChild(fig1); row.appendChild(el('div','warrow','→')); row.appendChild(fig2);
-  card.appendChild(row);
-  const m=el('div','m');
-  m.innerHTML='<span>SAM2 score carton '+w.carton_score+' · product '+w.product_score+'</span>'+
-    '<span>'+w.final_state+'</span>'+
-    '<span>packed in carton: '+(w.inside_carton?'<b>yes</b>':'<span class=bad>no</span>')+'</span>'+
-    '<span>mapped product half '+w.product_half_m.join(' × ')+' m</span>';
-  card.appendChild(m);
-  if(w.profile){const p=w.profile;
-    const pr=el('div','profile');
-    const spk=document.createElement('img'); spk.src='data:image/png;base64,'+w.sparkline_png_b64; spk.className='spark';
-    pr.appendChild(el('div','plabel','carton-region packing activity (cv2 frame-diff)'));
-    pr.appendChild(spk);
-    const lc={LOW:'#e37400',MEDIUM:'#1a73e8',HIGH:'#1e8e3e'}[p.confidence_label]||'#5f6368';
-    const pm=el('div','m');
-    pm.innerHTML='<span>≈<b>'+p.n_events+'</b> candidate place events</span>'+
-      '<span>confidence <b style="color:'+lc+'">'+p.confidence_label+'</b> ('+p.confidence+')</span>'+
-      '<span>active '+Math.round(p.active_fraction*100)+'% of '+p.duration_s+'s</span>';
-    pr.appendChild(pm);
-    pr.appendChild(el('div','pnote',p.note));
-    card.appendChild(pr);}
-  host.appendChild(card);
+function videosPanel(){
+  if(!D.videos){return;}
+  const host=document.getElementById('watchstage');
+  D.videos.forEach(w=>{
+    const card=el('div','pack real');
+    card.appendChild(el('h3',null,w.clip+'  ·  '+w.n+' objects → carton'));
+    const row=el('div','wrow');
+    const fig1=el('div','wfig'); const img=document.createElement('img');
+    img.src='data:image/png;base64,'+w.overlay_png_b64; img.className='wimg';
+    fig1.appendChild(img); fig1.appendChild(el('div','cap','SAM2 on the real clip — carton (amber) + '+w.n+' objects (green)'));
+    const fig2=el('div','wfig'); const v=document.createElement('video');
+    v.src='data:video/mp4;base64,'+w.pack_mp4_b64; v.controls=true; v.loop=true; v.muted=true; v.autoplay=true; v.playsInline=true; v.className='wimg';
+    fig2.appendChild(v); fig2.appendChild(el('div','cap','the SO-101 model picks & packs '+w.n+' objects, in MuJoCo'));
+    row.appendChild(fig1); row.appendChild(el('div','warrow','→')); row.appendChild(fig2);
+    card.appendChild(row);
+    const m=el('div','m');
+    m.innerHTML='<span>objects detected: <b>'+w.n+'</b></span>'+
+      '<span>SO-101 seated in carton: '+(w.seated===w.n?'<b>'+w.seated+'/'+w.n+'</b>':'<span class=bad>'+w.seated+'/'+w.n+'</span>')+'</span>'+
+      '<span>rectangular boxes — diverse materials are Phase-4</span>';
+    card.appendChild(m); host.appendChild(card);
+  });
 }
-slots(); packs(); watchPanel(); marker();
+slots(); packs(); videosPanel(); marker();
 """
 
 
 def render_physics_page(slots: list[dict], runtime: dict,
-                        arm_showcase: dict | None = None, watch: dict | None = None) -> str:
-    data = json.dumps({"slots": slots, "arm": arm_showcase, "watch": watch})
+                        arm_showcase: dict | None = None, videos: list | None = None) -> str:
+    data = json.dumps({"slots": slots, "arm": arm_showcase, "videos": videos})
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>morrow · customer video → LeRobot physics</title><style>{_CSS}</style></head>
@@ -273,12 +260,13 @@ height, placement from footprint overlap. Its usable top-down reach is small (x�
   <div><div class="eyebrow">LeRobot SO-101 physics — arm doing the task</div><div id="stage"></div></div>
 </div>
 <section class="marker">
-  <div class="eyebrow">Watch a real clip → workflow → SO-101 (SAM2)</div>
-  <p class="lead">This is the full <b>watch→do</b> path on a real customer clip: SAM2 (real weights)
-  segments the carton and an operator-seeded product on a frame, and the SO-101 then packs the product
-  it inferred, verified in physics. Honest limits: monocular clips carry no metric scale (operator sets
-  m/px), and fully-unattended video tracking drifts under hand occlusion — so segmentation is
-  operator-seeded, not magic. Omitted here if SAM2 weights aren't installed.</p>
+  <div class="eyebrow">Each customer clip → reconstruct the scene → the SO-101 packs it</div>
+  <p class="lead">For <b>every</b> clip: SAM2 (real weights) segments the carton and its objects, the scene
+  is reconstructed in MuJoCo, and the <b>SO-101 model</b> picks and packs each object into the carton —
+  a real IK + contact-grasp sequence with FSM-style grasp-retry and place-recover, so it ports 1:1 to the
+  physical arm. Honest: objects are packed as graspable rectangular boxes (the video sets the count;
+  diverse materials are Phase-4), and a monocular clip has no metric scale so the operator supplies m/px.
+  Omitted here if SAM2 weights aren't installed.</p>
   <div id="watchstage"></div>
 </section>
 <section class="marker">
@@ -313,17 +301,17 @@ analytic sim and to the eventual bench. Cartesian EE waypoints map to a SO-101 m
 
 def serve_physics(host: str = "127.0.0.1", port: int = 8001, videos_dir: str = "videos",
                   arm_kinds=("box",)) -> None:
-    from .showcase import build_arm_showcase, build_watch_showcase
-    watch = None
+    from .showcase import build_arm_showcase, build_video_showcases
+    videos = None
     try:
-        print("watching a real clip with SAM2 → SO-101 (skipped if no weights) ...", flush=True)
-        watch = build_watch_showcase()
+        print("reconstructing each clip with SAM2 → SO-101 packs the objects ...", flush=True)
+        videos = build_video_showcases()
     except Exception as e:  # SAM2 optional / clip-specific — never block the dashboard
-        print(f"  watch panel skipped: {e}", flush=True)
-    print("rendering SO-101 model packs (5-DOF IK) ...", flush=True)
+        print(f"  per-video panels skipped: {e}", flush=True)
+    print("rendering SO-101 model single-box pack (5-DOF IK) ...", flush=True)
     arm_showcase = build_arm_showcase(kinds=arm_kinds)
     page = render_physics_page(_slots(videos_dir, embed=False),
-                               runtime_info(), arm_showcase, watch).encode()
+                               runtime_info(), arm_showcase, videos).encode()
 
     class Handler(BaseHTTPRequestHandler):
         def _send(self, body, ctype):

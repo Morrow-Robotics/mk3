@@ -61,19 +61,19 @@ def _cell(args) -> None:
     try:
         from .physics.webview import (find_clips, render_physics_page, runtime_info,
                                       serve_physics, _slots)
-        from .physics.showcase import build_arm_showcase, build_watch_showcase
+        from .physics.showcase import build_arm_showcase, build_video_showcases
     except ImportError:
         print("physics cell needs MuJoCo: pip install -e '.[physics]'")
         return
     if args.shot:
         arm = None if args.no_arm else build_arm_showcase()
-        watch = None
+        videos = None
         if not args.no_arm:
             try:
-                watch = build_watch_showcase()
+                videos = build_video_showcases()
             except Exception as e:
-                print(f"watch panel skipped: {e}")
-        html = render_physics_page(_slots(args.videos, embed=True), runtime_info(), arm, watch)
+                print(f"per-video panels skipped: {e}")
+        html = render_physics_page(_slots(args.videos, embed=True), runtime_info(), arm, videos)
         with open(args.shot, "w") as f:
             f.write(html)
         print(f"wrote physics dashboard -> {args.shot} ({len(html)} bytes); "
